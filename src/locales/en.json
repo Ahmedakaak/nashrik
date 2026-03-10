@@ -1,0 +1,324 @@
+{
+    "app": {
+        "name": "Nashark",
+        "tagline": "Your Campus, Your Community",
+        "description": "The centralized platform for UTAS Salalah campus activities"
+    },
+    "nav": {
+        "home": "Home",
+        "events": "Events",
+        "clubs": "Clubs",
+        "dashboard": "Dashboard",
+        "myRegistrations": "My Registrations",
+        "myClubs": "My Clubs",
+        "settings": "Settings",
+        "notifications": "Notifications",
+        "logout": "Logout",
+        "login": "Login",
+        "signup": "Sign Up"
+    },
+    "landing": {
+        "hero": {
+            "title": "Discover Campus Life",
+            "subtitle": "Join events, connect with clubs, and never miss what's happening at UTAS Salalah",
+            "cta": "Get Started",
+            "ctaSecondary": "Explore Events"
+        },
+        "stats": {
+            "events": "Events Hosted",
+            "clubs": "Active Clubs",
+            "students": "Students Connected"
+        },
+        "features": {
+            "title": "Everything You Need",
+            "discover": {
+                "title": "Discover Events",
+                "description": "Browse and filter campus events by category, date, and club"
+            },
+            "register": {
+                "title": "One-Click Register",
+                "description": "Sign up for events instantly with a single click"
+            },
+            "qr": {
+                "title": "QR Attendance",
+                "description": "Quick check-in at events using QR code scanning"
+            },
+            "clubs": {
+                "title": "Join Clubs",
+                "description": "Explore campus clubs and become a member"
+            }
+        },
+        "featured": "Featured Events",
+        "viewAll": "View All"
+    },
+    "auth": {
+        "login": {
+            "title": "Welcome Back",
+            "subtitle": "Sign in to your account",
+            "email": "Email Address",
+            "password": "Password",
+            "submit": "Sign In",
+            "forgotPassword": "Forgot Password?",
+            "noAccount": "Don't have an account?",
+            "signUpLink": "Sign up"
+        },
+        "signup": {
+            "title": "Create Account",
+            "subtitle": "Join the UTAS Salalah community",
+            "fullName": "Full Name",
+            "studentId": "Student ID",
+            "email": "Email Address",
+            "password": "Password",
+            "confirmPassword": "Confirm Password",
+            "role": "I am a...",
+            "roleStudent": "Student",
+            "roleClubAdmin": "Club Admin",
+            "submit": "Create Account",
+            "hasAccount": "Already have an account?",
+            "signInLink": "Sign in"
+        },
+        "forgotPassword": {
+            "title": "Reset Password",
+            "subtitle": "Enter your email to receive a reset link",
+            "email": "Email Address",
+            "submit": "Send Reset Link",
+            "backToLogin": "Back to Login",
+            "success": "Check your email for the reset link"
+        }
+    },
+    "events": {
+        "title": "Discover Events",
+        "search": "Search events...",
+        "filters": {
+            "all": "All",
+            "category": "Category",
+            "club": "Club",
+            "dateFrom": "From",
+            "dateTo": "To",
+            "clear": "Clear Filters"
+        },
+        "sort": {
+            "date": "Date",
+            "popularity": "Popularity",
+            "newest": "Newest"
+        },
+        "register": "Register Now",
+        "registered": "Registered ✓",
+        "full": "Event Full",
+        "cancelled": "Cancelled",
+        "capacity": "{{current}}/{{max}} spots filled",
+        "spotsLeft": "{{count}} spots left",
+        "unlimited": "Unlimited spots",
+        "noEvents": "No events found",
+        "details": {
+            "about": "About This Event",
+            "dateTime": "Date & Time",
+            "location": "Location",
+            "hostedBy": "Hosted by",
+            "tags": "Tags",
+            "attendees": "Attendees",
+            "discussion": "Discussion",
+            "relatedEvents": "Related Events",
+            "writeComment": "Write a comment...",
+            "postComment": "Post"
+        }
+    },
+    "clubs": {
+        "title": "Campus Clubs",
+        "search": "Search clubs...",
+        "join": "Join Club",
+        "joined": "Member ✓",
+        "pending": "Pending Approval",
+        "leave": "Leave Club",
+        "members": "{{count}} members",
+        "noClubs": "No clubs found",
+        "profile": {
+            "about": "About",
+            "events": "Events",
+            "members": "Members",
+            "announcements": "Announcements"
+        }
+    },
+    "dashboard": {
+        "greeting": "Good {{timeOfDay}}, {{name}}!",
+        "tabs": {
+            "all": "All Events",
+            "registered": "Registered",
+            "recommended": "Recommended"
+        },
+        "quickActions": {
+            "browseEvents": "Browse Events",
+            "myClubs": "My Clubs",
+            "myRegistrations": "My Registrations"
+        },
+        "upcoming": "Upcoming Events",
+        "recentActivity": "Recent Activity"
+    },
+    "registrations": {
+        "title": "My Registrations",
+        "tabs": {
+            "upcoming": "Upcoming",
+            "past": "Past",
+            "attended": "Attended"
+        },
+        "showQR": "Show QR Code",
+        "toggleReminder": "Toggle Reminder",
+        "noRegistrations": "No registrations yet"
+    },
+    "clubAdmin": {
+        "dashboard": {
+            "title": "Club Dashboard",
+            "totalMembers": "Total Members",
+            "upcomingEvents": "Upcoming Events",
+            "totalEvents": "Total Events",
+            "avgAttendance": "Avg. Attendance"
+        },
+        "events": {
+            "title": "Event Management",
+            "create": "Create Event",
+            "edit": "Edit Event",
+            "delete": "Delete Event",
+            "generateQR": "Generate QR",
+            "viewAttendance": "View Attendance"
+        },
+        "members": {
+            "title": "Members",
+            "approve": "Approve",
+            "reject": "Reject",
+            "remove": "Remove",
+            "pendingRequests": "Pending Requests"
+        },
+        "scanner": {
+            "title": "QR Scanner",
+            "scanning": "Scanning...",
+            "success": "Attendance marked!",
+            "notRegistered": "Student not registered",
+            "alreadyScanned": "Already marked as attended",
+            "invalidQR": "Invalid QR code"
+        },
+        "announcements": {
+            "title": "Announcements"
+        },
+        "analytics": {
+            "title": "Analytics",
+            "attendanceTrend": "Attendance Trend",
+            "memberGrowth": "Member Growth",
+            "popularEvents": "Popular Events"
+        }
+    },
+    "admin": {
+        "dashboard": {
+            "title": "Admin Dashboard",
+            "totalUsers": "Total Users",
+            "activeEvents": "Active Events",
+            "totalClubs": "Total Clubs",
+            "pendingApprovals": "Pending Approvals"
+        },
+        "users": {
+            "title": "User Management",
+            "search": "Search users...",
+            "editRole": "Edit Role",
+            "resetPassword": "Reset Password",
+            "disable": "Disable Account"
+        },
+        "clubs": {
+            "title": "Club Management",
+            "approve": "Approve",
+            "reject": "Reject",
+            "delete": "Delete"
+        },
+        "events": {
+            "title": "Event Management",
+            "feature": "Feature Event",
+            "unfeature": "Remove from Featured"
+        },
+        "reports": {
+            "title": "Reports & Analytics",
+            "attendance": "Attendance Report",
+            "engagement": "Engagement Report",
+            "clubActivity": "Club Activity Report",
+            "export": "Export PDF",
+            "dateRange": "Date Range"
+        }
+    },
+    "settings": {
+        "title": "Settings",
+        "profile": {
+            "title": "Profile",
+            "fullName": "Full Name",
+            "email": "Email",
+            "studentId": "Student ID",
+            "avatar": "Profile Picture",
+            "changePhoto": "Change photo",
+            "uploadingPhoto": "Uploading...",
+            "avatarUpdated": "Profile picture updated successfully",
+            "fileTooLarge": "File too large. Maximum size is 2MB",
+            "invalidFileType": "Invalid file type. Use JPG, PNG, or WebP",
+            "uploadFailed": "Failed to upload image. Please try again",
+            "save": "Save Changes"
+        },
+        "security": {
+            "title": "Security",
+            "changePassword": "Change Password",
+            "currentPassword": "Current Password",
+            "newPassword": "New Password",
+            "confirmPassword": "Confirm Password",
+            "twoFactor": "Two-Factor Authentication",
+            "enable2FA": "Enable 2FA",
+            "disable2FA": "Disable 2FA"
+        },
+        "preferences": {
+            "title": "Preferences",
+            "language": "Language",
+            "notifications": "Notification Preferences",
+            "emailNotifs": "Email Notifications",
+            "inAppNotifs": "In-App Notifications"
+        },
+        "appearance": {
+            "title": "Appearance",
+            "theme": "Theme",
+            "themeLight": "Light",
+            "themeDark": "Dark",
+            "themeSystem": "System Default"
+        }
+    },
+    "notifications": {
+        "title": "Notifications",
+        "markAllRead": "Mark all as read",
+        "noNotifications": "No notifications yet",
+        "types": {
+            "event": "Event",
+            "club": "Club",
+            "system": "System",
+            "reminder": "Reminder"
+        }
+    },
+    "common": {
+        "loading": "Loading...",
+        "error": "Something went wrong",
+        "retry": "Retry",
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "edit": "Edit",
+        "create": "Create",
+        "search": "Search",
+        "filter": "Filter",
+        "sort": "Sort",
+        "viewAll": "View All",
+        "noData": "No data available",
+        "confirm": "Are you sure?",
+        "yes": "Yes",
+        "no": "No",
+        "back": "Back",
+        "next": "Next",
+        "submit": "Submit",
+        "close": "Close",
+        "upload": "Upload",
+        "download": "Download",
+        "export": "Export",
+        "morning": "morning",
+        "afternoon": "afternoon",
+        "evening": "evening"
+    }
+}

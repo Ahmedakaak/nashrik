@@ -1,0 +1,300 @@
+@import "tailwindcss";
+
+/* ===== CUSTOM THEME ===== */
+@theme {
+  --color-brand-50: #F0FDF9;
+  --color-brand-100: #CCFBEF;
+  --color-brand-200: #99F6E0;
+  --color-brand-300: #5FEACA;
+  --color-brand-400: #3ECF8E;
+  --color-brand-500: #2BA86F;
+  --color-brand-600: #10B981;
+  --color-brand-700: #059669;
+  --color-brand-800: #047857;
+  --color-brand-900: #065F46;
+
+  --color-surface-dark: var(--surface-dark);
+  --color-surface-darker: var(--surface-darker);
+  --color-surface-light: var(--surface-light);
+  --color-surface-DEFAULT: var(--surface-DEFAULT);
+  --color-surface-card: var(--surface-card);
+  --color-surface-border: var(--surface-border);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-light: var(--text-light);
+  --color-text-muted: var(--text-muted);
+
+  --color-status-error: #F97066;
+  --color-status-warning: #FFA726;
+  --color-status-success: #3ECF8E;
+  --color-status-info: #4E9FFF;
+  --font-family-sans: 'Inter', 'IBM Plex Sans Arabic', sans-serif;
+  --font-family-arabic: 'IBM Plex Sans Arabic', sans-serif;
+
+  --animate-fade-in: fade-in 0.5s ease-out;
+  --animate-slide-up: slide-up 0.5s ease-out;
+  --animate-slide-down: slide-down 0.3s ease-out;
+  --animate-scale-in: scale-in 0.3s ease-out;
+  --animate-shimmer: shimmer 2s infinite;
+  --animate-pulse-glow: pulse-glow 2s ease-in-out infinite;
+  --animate-float: float 6s ease-in-out infinite;
+}
+
+/* ===== THEME DEFINITIONS ===== */
+:root,
+[data-theme="dark"] {
+  --surface-dark: #1F1F1F;
+  --surface-darker: #181818;
+  --surface-light: #F8F9FA;
+  --surface-DEFAULT: #FFFFFF;
+  --surface-card: #262626;
+  --surface-border: #333333;
+
+  --text-primary: #EDEDED;
+  --text-secondary: #A0A0A0;
+  --text-light: #1E1E1E;
+  --text-muted: #666666;
+
+  --bg-primary: #181818;
+  --scrollbar-thumb: #333333;
+  --scrollbar-thumb-hover: #3ECF8E;
+}
+
+[data-theme="light"] {
+  --surface-dark: #FFFFFF;
+  --surface-darker: #F3F4F6;
+  --surface-light: #F8F9FA;
+  --surface-DEFAULT: #1F1F1F;
+  --surface-card: #FFFFFF;
+  --surface-border: #E5E7EB;
+
+  --text-primary: #1F2937;
+  --text-secondary: #6B7280;
+  --text-light: #F9FAFB;
+  --text-muted: #9CA3AF;
+
+  --bg-primary: #F3F4F6;
+  --scrollbar-thumb: #D1D5DB;
+  --scrollbar-thumb-hover: #9CA3AF;
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(62, 207, 142, 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 40px rgba(62, 207, 142, 0.6);
+  }
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+/* ===== BASE STYLES ===== */
+/* Note: Tailwind v4's preflight handles the CSS reset.
+   Do NOT add unlayered * { margin/padding: 0 } as it overrides Tailwind utilities. */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', 'IBM Plex Sans Arabic', sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+[dir="rtl"] body {
+  font-family: 'IBM Plex Sans Arabic', 'Inter', sans-serif;
+}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* ===== SELECTION ===== */
+::selection {
+  background: rgba(62, 207, 142, 0.3);
+  color: #EDEDED;
+}
+
+/* ===== LINKS ===== */
+a {
+  color: #3ECF8E;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: #5FEACA;
+}
+
+/* ===== UTILITIES ===== */
+.glass {
+  background: rgba(31, 31, 31, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-light {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #3ECF8E 0%, #5FEACA 50%, #99F6E0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-bg {
+  background: linear-gradient(135deg, #3ECF8E 0%, #2BA86F 100%);
+}
+
+.gradient-bg-subtle {
+  background: linear-gradient(135deg, rgba(62, 207, 142, 0.1) 0%, rgba(43, 168, 111, 0.05) 100%);
+}
+
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="light"] .hover-lift:hover {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+.shimmer-bg {
+  background: linear-gradient(90deg, #262626 25%, #333 50%, #262626 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* ===== FORM ELEMENTS ===== */
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: #3ECF8E;
+  box-shadow: 0 0 0 3px rgba(62, 207, 142, 0.15);
+}
+
+/* ===== RTL SUPPORT ===== */
+[dir="rtl"] .icon-flip {
+  transform: scaleX(-1);
+}
+
+/* ===== TOAST OVERRIDES ===== */
+[data-sonner-toast],
+div[role="status"] {
+  font-family: 'Inter', 'IBM Plex Sans Arabic', sans-serif !important;
+}
+
+/* ===== PAGE TRANSITIONS ===== */
+.page-enter {
+  animation: fade-in 0.3s ease-out, slide-up 0.3s ease-out;
+}
