@@ -63,7 +63,7 @@ export default function LandingPage() {
     const stats = [
         { value: '150+', label: t('landing.stats.events'), icon: Calendar },
         { value: '20+', label: t('landing.stats.clubs'), icon: Users },
-        { value: '2,000+', label: t('landing.stats.students'), icon: Star },
+        { value: '700+', label: t('landing.stats.students'), icon: Star },
     ]
 
     return (

@@ -62,21 +62,21 @@
 }
 
 [data-theme="light"] {
-  --surface-dark: #FFFFFF;
-  --surface-darker: #F3F4F6;
-  --surface-light: #F8F9FA;
-  --surface-DEFAULT: #1F1F1F;
+  --surface-dark: #F8FAFC;
+  --surface-darker: #F1F5F9;
+  --surface-light: #FFFFFF;
+  --surface-DEFAULT: #F8FAFC;
   --surface-card: #FFFFFF;
-  --surface-border: #E5E7EB;
+  --surface-border: #E2E8F0;
 
-  --text-primary: #1F2937;
-  --text-secondary: #6B7280;
-  --text-light: #F9FAFB;
-  --text-muted: #9CA3AF;
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-light: #FFFFFF;
+  --text-muted: #94A3B8;
 
-  --bg-primary: #F3F4F6;
-  --scrollbar-thumb: #D1D5DB;
-  --scrollbar-thumb-hover: #9CA3AF;
+  --bg-primary: #FBFBFE;
+  --scrollbar-thumb: #E2E8F0;
+  --scrollbar-thumb-hover: #CBD5E1;
 }
 
 /* ===== ANIMATIONS ===== */
@@ -203,8 +203,8 @@ body {
 
 /* ===== SELECTION ===== */
 ::selection {
-  background: rgba(62, 207, 142, 0.3);
-  color: #EDEDED;
+  background: rgba(62, 207, 142, 0.25);
+  color: inherit;
 }
 
 /* ===== LINKS ===== */
@@ -220,17 +220,26 @@ a:hover {
 
 /* ===== UTILITIES ===== */
 .glass {
-  background: rgba(31, 31, 31, 0.7);
+  background: var(--data-theme-glass, rgba(31, 31, 31, 0.7));
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--surface-border);
+}
+
+[data-theme="light"] .glass {
+  background: rgba(255, 255, 255, 0.7);
 }
 
 .glass-light {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="light"] .glass-light {
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .gradient-text {

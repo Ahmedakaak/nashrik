@@ -26,6 +26,7 @@ import EventDetailsPage from './pages/student/EventDetailsPage'
 import ClubsPage from './pages/student/ClubsPage'
 import ClubProfilePage from './pages/student/ClubProfilePage'
 import MyRegistrationsPage from './pages/student/MyRegistrationsPage'
+import MyClubsPage from './pages/student/MyClubsPage'
 
 // Club Admin Pages
 import ClubAdminDashboardPage from './pages/club-admin/DashboardPage'
@@ -136,7 +137,7 @@ export default function App() {
                             } />
                             <Route path="/my-clubs" element={
                                 <ProtectedRoute>
-                                    <ComingSoon title="My Clubs" />
+                                    <MyClubsPage />
                                 </ProtectedRoute>
                             } />
                             <Route path="/notifications" element={
