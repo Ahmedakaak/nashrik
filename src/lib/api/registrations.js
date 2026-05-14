@@ -88,6 +88,31 @@ export async function findRegistrationByQrToken(eventId, qrToken) {
     return data
 }
 
+export async function findRegistrationByScannedCode(scannedCode) {
+    const token = scannedCode.trim()
+
+    const { data: tokenMatch, error: tokenError } = await supabase
+        .from('event_registrations')
+        .select('*, profile:profiles(id, full_name, full_name_ar, student_id, email), event:events(id, title, title_ar)')
+        .eq('qr_token', token)
+        .maybeSingle()
+
+    if (tokenError) throw tokenError
+    if (tokenMatch) return tokenMatch
+
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    if (!uuidPattern.test(token)) return null
+
+    const { data: idMatch, error: idError } = await supabase
+        .from('event_registrations')
+        .select('*, profile:profiles(id, full_name, full_name_ar, student_id, email), event:events(id, title, title_ar)')
+        .eq('id', token)
+        .maybeSingle()
+
+    if (idError) throw idError
+    return idMatch
+}
+
 export async function markAttended(registrationId, method = 'qr') {
     const { data, error } = await supabase.rpc('mark_registration_attended', {
         p_registration_id: registrationId,

@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getClubByAdminId } from '../../lib/api/clubs'
 import { getEventsByClub } from '../../lib/api/events'
-import { getEventAttendees, markAttended } from '../../lib/api/registrations'
+import { findRegistrationByScannedCode, getEventAttendees, markAttended } from '../../lib/api/registrations'
 import { PageLoader } from '../../components/common/LoadingSpinner'
 import { Html5QrcodeScanner } from 'html5-qrcode'
 import toast from 'react-hot-toast'
@@ -77,7 +77,15 @@ export default function QRScannerPage() {
 
     const handleScannedId = async (id) => {
         const token = id.trim()
-        const record = attendance.find(a => a.event_id === selectedEvent && (a.id === token || a.qr_token === token))
+        let record = attendance.find(a => a.event_id === selectedEvent && (a.id === token || a.qr_token === token))
+        if (!record) {
+            try {
+                record = await findRegistrationByScannedCode(token)
+            } catch (err) {
+                setScanResult({ type: 'error', message: err.message })
+                return
+            }
+        }
         if (!record) { 
             setScanResult({ type: 'error', message: t('clubAdmin.scanner.notRegistered') || 'Invalid QR code. Registration not found.' }) 
         }
@@ -90,7 +98,13 @@ export default function QRScannerPage() {
         else {
             try {
                 const updated = await markAttended(record.id, 'qr')
-                setAttendance(prev => prev.map(a => a.id === record.id ? { ...a, ...updated } : a))
+                if (record.event_id !== selectedEvent) {
+                    setSelectedEvent(record.event_id)
+                    const nextAttendance = await getEventAttendees(record.event_id)
+                    setAttendance(nextAttendance.map(a => a.id === record.id ? { ...a, ...updated } : a))
+                } else {
+                    setAttendance(prev => prev.map(a => a.id === record.id ? { ...a, ...updated } : a))
+                }
                 setScanResult({ type: 'success', message: `${t('clubAdmin.scanner.success') || 'Success'} — ${record.profile?.full_name}` })
             } catch (err) { setScanResult({ type: 'error', message: err.message }) }
         }
