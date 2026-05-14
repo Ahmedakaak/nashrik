@@ -51,7 +51,7 @@ export async function cancelRegistration(eventId, userId) {
 export async function getEventAttendees(eventId) {
     const { data, error } = await supabase
         .from('event_registrations')
-        .select('*, profile:profiles(id, full_name, full_name_ar, student_id, email)')
+        .select('*, profile:profiles!event_registrations_user_id_fkey(id, full_name, full_name_ar, student_id, email)')
         .eq('event_id', eventId)
         .order('registered_at', { ascending: true })
 
@@ -79,7 +79,7 @@ export async function getAttendanceSummary(eventId) {
 export async function findRegistrationByQrToken(eventId, qrToken) {
     const { data, error } = await supabase
         .from('event_registrations')
-        .select('*, profile:profiles(id, full_name, full_name_ar, student_id, email)')
+        .select('*, profile:profiles!event_registrations_user_id_fkey(id, full_name, full_name_ar, student_id, email)')
         .eq('event_id', eventId)
         .eq('qr_token', qrToken)
         .maybeSingle()
@@ -93,7 +93,7 @@ export async function findRegistrationByScannedCode(scannedCode) {
 
     const { data: tokenMatch, error: tokenError } = await supabase
         .from('event_registrations')
-        .select('*, profile:profiles(id, full_name, full_name_ar, student_id, email), event:events(id, title, title_ar)')
+        .select('*, profile:profiles!event_registrations_user_id_fkey(id, full_name, full_name_ar, student_id, email), event:events(id, title, title_ar)')
         .eq('qr_token', token)
         .maybeSingle()
 
@@ -105,7 +105,7 @@ export async function findRegistrationByScannedCode(scannedCode) {
 
     const { data: idMatch, error: idError } = await supabase
         .from('event_registrations')
-        .select('*, profile:profiles(id, full_name, full_name_ar, student_id, email), event:events(id, title, title_ar)')
+        .select('*, profile:profiles!event_registrations_user_id_fkey(id, full_name, full_name_ar, student_id, email), event:events(id, title, title_ar)')
         .eq('id', token)
         .maybeSingle()
 
@@ -126,7 +126,7 @@ export async function markAttended(registrationId, method = 'qr') {
 export async function markManualAttendance(eventId, studentId) {
     const { data, error } = await supabase
         .from('event_registrations')
-        .select('*, profile:profiles(id, full_name, full_name_ar, student_id, email)')
+        .select('*, profile:profiles!event_registrations_user_id_fkey(id, full_name, full_name_ar, student_id, email)')
         .eq('event_id', eventId)
         .eq('status', 'confirmed')
 
