@@ -58,7 +58,7 @@ export default function MyRegistrationsPage() {
         }))
     }, [registrations])
 
-    const upcomingRegs = registeredEvents.filter(r => new Date(r.event.date) > new Date())
+    const upcomingRegs = registeredEvents.filter(r => new Date(r.event.date) > new Date() && r.status === 'confirmed')
     const pastRegs = registeredEvents.filter(r => new Date(r.event.date) <= new Date())
     const attendedRegs = registeredEvents.filter(r => r.attended)
 
@@ -187,7 +187,7 @@ export default function MyRegistrationsPage() {
                                     </div>
 
                                     {/* QR Code button — only for upcoming */}
-                                    {activeTab === 'upcoming' && (
+                                    {activeTab === 'upcoming' && reg.status === 'confirmed' && (
                                         <button
                                             onClick={() => setShowQR(showQR === reg.event_id ? null : reg.event_id)}
                                             className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-400/10 text-brand-400 border border-brand-400/20 hover:bg-brand-400/20 transition-colors cursor-pointer text-sm font-medium"

@@ -76,6 +76,8 @@ CREATE TABLE IF NOT EXISTS event_registrations (
     qr_token TEXT DEFAULT gen_random_uuid()::text,
     registered_at TIMESTAMPTZ DEFAULT NOW(),
     attended_at TIMESTAMPTZ,
+    checked_in_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+    check_in_method TEXT CHECK (check_in_method IN ('qr', 'manual')),
     UNIQUE(event_id, user_id)
 );
 
@@ -129,6 +131,7 @@ CREATE INDEX IF NOT EXISTS idx_events_featured ON events(is_featured) WHERE is_f
 
 CREATE INDEX IF NOT EXISTS idx_registrations_event ON event_registrations(event_id);
 CREATE INDEX IF NOT EXISTS idx_registrations_user ON event_registrations(user_id);
+CREATE INDEX IF NOT EXISTS idx_registrations_qr_token ON event_registrations(qr_token);
 
 CREATE INDEX IF NOT EXISTS idx_memberships_club ON club_memberships(club_id);
 CREATE INDEX IF NOT EXISTS idx_memberships_user ON club_memberships(user_id);
@@ -242,6 +245,82 @@ CREATE TRIGGER on_membership_change
     FOR EACH ROW EXECUTE FUNCTION update_club_member_count();
 
 -- ============================================
+-- SECURE ATTENDANCE CHECK-IN
+-- ============================================
+CREATE OR REPLACE FUNCTION public.mark_registration_attended(
+    p_registration_id UUID,
+    p_method TEXT DEFAULT 'qr'
+)
+RETURNS event_registrations
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_registration event_registrations%ROWTYPE;
+    v_role TEXT;
+    v_can_check_in BOOLEAN;
+BEGIN
+    IF auth.uid() IS NULL THEN
+        RAISE EXCEPTION 'Authentication required';
+    END IF;
+
+    IF p_method NOT IN ('qr', 'manual') THEN
+        RAISE EXCEPTION 'Invalid check-in method';
+    END IF;
+
+    SELECT *
+    INTO v_registration
+    FROM event_registrations
+    WHERE id = p_registration_id;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Registration not found';
+    END IF;
+
+    SELECT role
+    INTO v_role
+    FROM profiles
+    WHERE id = auth.uid();
+
+    SELECT EXISTS (
+        SELECT 1
+        FROM events
+        JOIN clubs ON clubs.id = events.club_id
+        WHERE events.id = v_registration.event_id
+          AND clubs.admin_id = auth.uid()
+    )
+    INTO v_can_check_in;
+
+    IF NOT (v_can_check_in OR v_role = 'system_admin') THEN
+        RAISE EXCEPTION 'Not authorized to mark attendance';
+    END IF;
+
+    IF v_registration.status <> 'confirmed' THEN
+        RAISE EXCEPTION 'Only confirmed registrations can be marked attended';
+    END IF;
+
+    IF v_registration.attended THEN
+        RETURN v_registration;
+    END IF;
+
+    UPDATE event_registrations
+    SET attended = TRUE,
+        attended_at = NOW(),
+        checked_in_by = auth.uid(),
+        check_in_method = p_method
+    WHERE id = p_registration_id
+    RETURNING *
+    INTO v_registration;
+
+    RETURN v_registration;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.mark_registration_attended(UUID, TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.mark_registration_attended(UUID, TEXT) TO authenticated;
+
+-- ============================================
 -- ROW LEVEL SECURITY (RLS)
 -- ============================================
 
@@ -304,11 +383,14 @@ CREATE POLICY "Club admins can view registrations for their events"
         WHERE events.id = event_registrations.event_id AND clubs.admin_id = auth.uid()
     ));
 
+CREATE POLICY "System admins can view all registrations"
+    ON event_registrations FOR SELECT USING (EXISTS (
+        SELECT 1 FROM profiles
+        WHERE profiles.id = auth.uid() AND profiles.role = 'system_admin'
+    ));
+
 CREATE POLICY "Users can register for events"
     ON event_registrations FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can cancel their registration"
-    ON event_registrations FOR UPDATE USING (user_id = auth.uid());
 
 CREATE POLICY "Users can delete their registration"
     ON event_registrations FOR DELETE USING (user_id = auth.uid());

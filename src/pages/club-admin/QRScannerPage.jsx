@@ -76,17 +76,21 @@ export default function QRScannerPage() {
     }, [scanning])
 
     const handleScannedId = async (id) => {
-        const record = attendance.find(a => a.id === id || a.qr_token === id)
+        const token = id.trim()
+        const record = attendance.find(a => a.event_id === selectedEvent && (a.id === token || a.qr_token === token))
         if (!record) { 
             setScanResult({ type: 'error', message: t('clubAdmin.scanner.notRegistered') || 'Invalid QR code. Registration not found.' }) 
+        }
+        else if (record.status !== 'confirmed') {
+            setScanResult({ type: 'error', message: `Registration is ${record.status}. Attendance cannot be marked.` })
         }
         else if (record.attended) { 
             setScanResult({ type: 'warning', message: t('clubAdmin.scanner.alreadyScanned') || 'Already scanned.' }) 
         }
         else {
             try {
-                await markAttended(record.id)
-                setAttendance(prev => prev.map(a => a.id === record.id ? { ...a, attended: true, attended_at: new Date().toISOString() } : a))
+                const updated = await markAttended(record.id, 'qr')
+                setAttendance(prev => prev.map(a => a.id === record.id ? { ...a, ...updated } : a))
                 setScanResult({ type: 'success', message: `${t('clubAdmin.scanner.success') || 'Success'} — ${record.profile?.full_name}` })
             } catch (err) { setScanResult({ type: 'error', message: err.message }) }
         }
@@ -96,11 +100,12 @@ export default function QRScannerPage() {
         if (!manualId.trim()) return
         const record = attendance.find(a => a.profile?.student_id?.toLowerCase() === manualId.trim().toLowerCase())
         if (!record) { setScanResult({ type: 'error', message: t('clubAdmin.scanner.notRegistered') || 'Student ID not found in registrations.' }) }
+        else if (record.status !== 'confirmed') { setScanResult({ type: 'error', message: `Registration is ${record.status}. Attendance cannot be marked.` }) }
         else if (record.attended) { setScanResult({ type: 'warning', message: t('clubAdmin.scanner.alreadyScanned') || 'Already scanned.' }) }
         else {
             try {
-                await markAttended(record.id)
-                setAttendance(prev => prev.map(a => a.id === record.id ? { ...a, attended: true, attended_at: new Date().toISOString() } : a))
+                const updated = await markAttended(record.id, 'manual')
+                setAttendance(prev => prev.map(a => a.id === record.id ? { ...a, ...updated } : a))
                 setScanResult({ type: 'success', message: `${t('clubAdmin.scanner.success') || 'Success'} — ${record.profile?.full_name}` })
             } catch (err) { setScanResult({ type: 'error', message: err.message }) }
         }
@@ -128,6 +133,7 @@ export default function QRScannerPage() {
                     <div className="bg-surface-card border border-surface-border rounded-2xl p-5">
                         <label className="text-sm text-text-secondary mb-2 block">Select Event</label>
                         <select value={selectedEvent} onChange={e => setSelectedEvent(e.target.value)} className="w-full px-3 py-2.5 bg-surface-darker border border-surface-border rounded-xl text-text-primary text-sm outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400">
+                            {clubEvents.length === 0 && <option value="">No events available</option>}
                             {clubEvents.map(e => <option key={e.id} value={e.id}>{isRTL ? e.title_ar : e.title}</option>)}
                         </select>
                     </div>
@@ -145,8 +151,9 @@ export default function QRScannerPage() {
                         </div>
                         
                         <button 
-                            onClick={() => setScanning(!scanning)} 
-                            className={`w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-medium transition-opacity cursor-pointer ${scanning ? 'bg-status-error/10 text-status-error hover:bg-status-error/20' : 'gradient-bg text-white hover:opacity-90'}`}
+                            onClick={() => selectedEvent && setScanning(!scanning)}
+                            disabled={!selectedEvent}
+                            className={`w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-medium transition-opacity ${selectedEvent ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'} ${scanning ? 'bg-status-error/10 text-status-error hover:bg-status-error/20' : 'gradient-bg text-white hover:opacity-90'}`}
                         >
                             {scanning ? <XCircle size={18} /> : <Camera size={18} />}
                             {scanning ? 'Stop Scanning' : 'Start Camera Scanner'}
@@ -157,7 +164,7 @@ export default function QRScannerPage() {
                         <h3 className="text-sm font-semibold text-text-primary mb-3 flex items-center gap-2"><Hash size={16} className="text-brand-400" />Manual Entry</h3>
                         <div className="flex gap-2">
                             <input type="text" placeholder="Enter Student ID..." value={manualId} onChange={e => setManualId(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleManualEntry()} className="flex-1 px-3 py-2.5 bg-surface-darker border border-surface-border rounded-xl text-text-primary text-sm placeholder:text-text-muted outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400" />
-                            <button onClick={handleManualEntry} className="px-5 py-2.5 rounded-xl gradient-bg text-white text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer">
+                            <button onClick={handleManualEntry} disabled={!selectedEvent} className={`px-5 py-2.5 rounded-xl gradient-bg text-white text-sm font-medium hover:opacity-90 transition-opacity ${selectedEvent ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}>
                                 {t('common.submit') || 'Submit'}
                             </button>
                         </div>
@@ -199,7 +206,7 @@ export default function QRScannerPage() {
                                     <p className="text-xs text-text-muted">{record.profile?.student_id}</p>
                                 </div>
                                 <span className={`text-xs font-medium px-2 py-0.5 rounded-lg ${record.attended ? 'bg-status-success/15 text-status-success' : 'bg-surface-darker text-text-muted'}`}>
-                                    {record.attended ? 'Attended' : 'Registered'}
+                                    {record.attended ? 'Attended' : record.status === 'confirmed' ? 'Registered' : record.status}
                                 </span>
                             </div>
                         ))}

@@ -4,6 +4,8 @@ import { motion } from 'framer-motion'
 import { getAllEvents } from '../../lib/api/events'
 import { getClubs } from '../../lib/api/clubs'
 import { getUsersByRole } from '../../lib/api/admin'
+import { getAttendanceForEvents } from '../../lib/api/registrations'
+import { summarizeAttendance, summarizeAttendanceByEvent } from '../../lib/attendance'
 import { PageLoader } from '../../components/common/LoadingSpinner'
 import { BarChart3, Download, Calendar, Users, BookOpen } from 'lucide-react'
 import { BarChart, Bar, PieChart as RePieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
@@ -18,13 +20,15 @@ export default function ReportsPage() {
     const [events, setEvents] = useState([])
     const [clubs, setClubs] = useState([])
     const [usersByRole, setUsersByRole] = useState([])
+    const [registrations, setRegistrations] = useState([])
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
         async function load() {
             try {
                 const [e, c, u] = await Promise.all([getAllEvents(), getClubs(), getUsersByRole()])
-                setEvents(e); setClubs(c); setUsersByRole(u)
+                const regs = await getAttendanceForEvents(e.map(event => event.id))
+                setEvents(e); setClubs(c); setUsersByRole(u); setRegistrations(regs)
             } catch (err) { console.error(err) }
             finally { setLoading(false) }
         }
@@ -34,19 +38,22 @@ export default function ReportsPage() {
     // Build chart data from real events
     const attendanceTrend = (() => {
         const months = {}
+        const byEvent = summarizeAttendanceByEvent(registrations)
         events.forEach(e => {
             const m = new Date(e.date).toLocaleString('en-US', { month: 'short' })
-            if (!months[m]) months[m] = { month: m, attendance: 0, capacity: 0 }
-            months[m].attendance += e.registered_count || 0
+            const summary = summarizeAttendance(byEvent[e.id] || [])
+            if (!months[m]) months[m] = { month: m, attendance: 0, registered: 0, capacity: 0 }
+            months[m].attendance += summary.attended
+            months[m].registered += summary.registered
             months[m].capacity += e.max_capacity || 0
         })
         return Object.values(months)
     })()
 
+    const registrationsByEvent = summarizeAttendanceByEvent(registrations)
     const topEvents = events.slice(0, 8).map(e => ({
         name: isRTL ? e.title_ar : e.title,
-        registered: e.registered_count || 0,
-        rate: e.max_capacity ? Math.round(((e.registered_count || 0) / e.max_capacity) * 100) : 0,
+        ...summarizeAttendance(registrationsByEvent[e.id] || []),
     }))
 
     const clubActivity = clubs.map(c => ({
@@ -70,9 +77,9 @@ export default function ReportsPage() {
             doc.setFontSize(10); doc.setTextColor(100)
             doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 30)
             if (activeReport === 'attendance') {
-                autoTable(doc, { startY: 40, head: [['Month', 'Attendance', 'Capacity', 'Rate']], body: attendanceTrend.map(r => [r.month, r.attendance, r.capacity, `${r.capacity ? Math.round((r.attendance / r.capacity) * 100) : 0}%`]), theme: 'grid', headStyles: { fillColor: [62, 207, 142] } })
+                autoTable(doc, { startY: 40, head: [['Month', 'Attended', 'Registered', 'Attendance Rate']], body: attendanceTrend.map(r => [r.month, r.attendance, r.registered, `${r.registered ? Math.round((r.attendance / r.registered) * 100) : 0}%`]), theme: 'grid', headStyles: { fillColor: [62, 207, 142] } })
             } else if (activeReport === 'engagement') {
-                autoTable(doc, { startY: 40, head: [['Event', 'Registered', 'Fill Rate']], body: topEvents.map(r => [r.name, r.registered, `${r.rate}%`]), theme: 'grid', headStyles: { fillColor: [78, 159, 255] } })
+                autoTable(doc, { startY: 40, head: [['Event', 'Registered', 'Attended', 'Attendance Rate']], body: topEvents.map(r => [r.name, r.registered, r.attended, `${r.rate}%`]), theme: 'grid', headStyles: { fillColor: [78, 159, 255] } })
             } else {
                 autoTable(doc, { startY: 40, head: [['Club', 'Members', 'Events']], body: clubActivity.map(c => [c.name, c.members, c.events]), theme: 'grid', headStyles: { fillColor: [167, 139, 250] } })
             }
@@ -96,12 +103,12 @@ export default function ReportsPage() {
                     <div className="bg-surface-card border border-surface-border rounded-2xl p-5">
                         <h3 className="font-semibold text-text-primary mb-4 flex items-center gap-2"><Calendar size={18} className="text-brand-400" /> Attendance Trend</h3>
                         <ResponsiveContainer width="100%" height={300}>
-                            <BarChart data={attendanceTrend}><CartesianGrid strokeDasharray="3 3" stroke="#333" /><XAxis dataKey="month" tick={{ fill: '#A0A0A0', fontSize: 12 }} /><YAxis tick={{ fill: '#A0A0A0', fontSize: 12 }} /><Tooltip content={<CustomTooltip />} /><Legend formatter={(v) => <span className="text-text-secondary text-sm">{v}</span>} /><Bar dataKey="attendance" name="Attendance" fill="#3ECF8E" radius={[4, 4, 0, 0]} /><Bar dataKey="capacity" name="Capacity" fill="#4E9FFF" radius={[4, 4, 0, 0]} /></BarChart>
+                            <BarChart data={attendanceTrend}><CartesianGrid strokeDasharray="3 3" stroke="#333" /><XAxis dataKey="month" tick={{ fill: '#A0A0A0', fontSize: 12 }} /><YAxis tick={{ fill: '#A0A0A0', fontSize: 12 }} /><Tooltip content={<CustomTooltip />} /><Legend formatter={(v) => <span className="text-text-secondary text-sm">{v}</span>} /><Bar dataKey="attendance" name="Attended" fill="#3ECF8E" radius={[4, 4, 0, 0]} /><Bar dataKey="registered" name="Registered" fill="#4E9FFF" radius={[4, 4, 0, 0]} /></BarChart>
                         </ResponsiveContainer>
                     </div>
                     <div className="bg-surface-card border border-surface-border rounded-2xl p-5">
                         <h3 className="font-semibold text-text-primary mb-4">Top Events</h3>
-                        <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b border-surface-border text-text-muted"><th className="text-start pb-3 font-medium">Event</th><th className="text-center pb-3 font-medium">Registered</th><th className="text-end pb-3 font-medium">Fill Rate</th></tr></thead><tbody>{topEvents.map((e, i) => <tr key={i} className="border-b border-surface-border last:border-0"><td className="py-3 text-text-primary font-medium">{e.name}</td><td className="py-3 text-center text-text-secondary">{e.registered}</td><td className="py-3 text-end"><span className={`text-xs font-medium px-2 py-0.5 rounded-lg ${e.rate >= 80 ? 'bg-status-success/15 text-status-success' : 'bg-status-warning/15 text-status-warning'}`}>{e.rate}%</span></td></tr>)}</tbody></table></div>
+                        <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b border-surface-border text-text-muted"><th className="text-start pb-3 font-medium">Event</th><th className="text-center pb-3 font-medium">Registered</th><th className="text-center pb-3 font-medium">Attended</th><th className="text-end pb-3 font-medium">Attendance Rate</th></tr></thead><tbody>{topEvents.map((e, i) => <tr key={i} className="border-b border-surface-border last:border-0"><td className="py-3 text-text-primary font-medium">{e.name}</td><td className="py-3 text-center text-text-secondary">{e.registered}</td><td className="py-3 text-center text-text-secondary">{e.attended}</td><td className="py-3 text-end"><span className={`text-xs font-medium px-2 py-0.5 rounded-lg ${e.rate >= 80 ? 'bg-status-success/15 text-status-success' : 'bg-status-warning/15 text-status-warning'}`}>{e.rate}%</span></td></tr>)}</tbody></table></div>
                     </div>
                 </>)}
                 {activeReport === 'engagement' && (

@@ -5,6 +5,8 @@ import { motion } from 'framer-motion'
 import { getClubByAdminId } from '../../lib/api/clubs'
 import { getEventsByClub } from '../../lib/api/events'
 import { getClubMembers } from '../../lib/api/memberships'
+import { getAttendanceForEvents } from '../../lib/api/registrations'
+import { summarizeAttendance, summarizeAttendanceByEvent } from '../../lib/attendance'
 import { PageLoader } from '../../components/common/LoadingSpinner'
 import { BarChart3, TrendingUp, Users, PieChart } from 'lucide-react'
 import { AreaChart, Area, BarChart, Bar, PieChart as RePieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
@@ -17,6 +19,7 @@ export default function AnalyticsPage() {
     const isRTL = i18n.language === 'ar'
     const [events, setEvents] = useState([])
     const [members, setMembers] = useState([])
+    const [registrations, setRegistrations] = useState([])
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
@@ -26,7 +29,8 @@ export default function AnalyticsPage() {
                 const c = await getClubByAdminId(user.id)
                 if (c) {
                     const [evts, membs] = await Promise.all([getEventsByClub(c.id), getClubMembers(c.id)])
-                    setEvents(evts); setMembers(membs)
+                    const regs = await getAttendanceForEvents(evts.map(event => event.id))
+                    setEvents(evts); setMembers(membs); setRegistrations(regs)
                 }
             } catch (err) { console.error(err) }
             finally { setLoading(false) }
@@ -37,14 +41,17 @@ export default function AnalyticsPage() {
     // Compute analytics from real data
     const attendanceTrend = useMemo(() => {
         const months = {}
+        const byEvent = summarizeAttendanceByEvent(registrations)
         events.forEach(e => {
             const m = new Date(e.date).toLocaleString('en-US', { month: 'short' })
-            if (!months[m]) months[m] = { month: m, attendance: 0, capacity: 0 }
-            months[m].attendance += e.registered_count || 0
+            const summary = summarizeAttendance(byEvent[e.id] || [])
+            if (!months[m]) months[m] = { month: m, attendance: 0, registered: 0, capacity: 0 }
+            months[m].attendance += summary.attended
+            months[m].registered += summary.registered
             months[m].capacity += e.max_capacity || 0
         })
         return Object.values(months)
-    }, [events])
+    }, [events, registrations])
 
     const memberGrowth = useMemo(() => {
         const months = {}
@@ -62,13 +69,12 @@ export default function AnalyticsPage() {
     }, [events])
 
     const topEvents = useMemo(() => {
+        const byEvent = summarizeAttendanceByEvent(registrations)
         return events.slice(0, 5).map(e => ({
             name: e.title, name_ar: e.title_ar,
-            registered: e.registered_count || 0,
-            attended: 0, // would need attended_count from registrations
-            rate: e.max_capacity ? Math.round(((e.registered_count || 0) / e.max_capacity) * 100) : 0,
+            ...summarizeAttendance(byEvent[e.id] || []),
         }))
-    }, [events])
+    }, [events, registrations])
 
     const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.1 } } }
     const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } }
@@ -99,7 +105,7 @@ export default function AnalyticsPage() {
                         <AreaChart data={attendanceTrend}>
                             <defs><linearGradient id="colorAtt" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3ECF8E" stopOpacity={0.3} /><stop offset="95%" stopColor="#3ECF8E" stopOpacity={0} /></linearGradient></defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="#333" /><XAxis dataKey="month" tick={{ fill: '#A0A0A0', fontSize: 12 }} /><YAxis tick={{ fill: '#A0A0A0', fontSize: 12 }} /><Tooltip content={<CustomTooltip />} />
-                            <Area type="monotone" dataKey="attendance" name="Attendance" stroke="#3ECF8E" fill="url(#colorAtt)" strokeWidth={2} /><Area type="monotone" dataKey="capacity" name="Capacity" stroke="#4E9FFF" fill="none" strokeWidth={2} strokeDasharray="5 5" />
+                            <Area type="monotone" dataKey="attendance" name="Attended" stroke="#3ECF8E" fill="url(#colorAtt)" strokeWidth={2} /><Area type="monotone" dataKey="registered" name="Registered" stroke="#4E9FFF" fill="none" strokeWidth={2} strokeDasharray="5 5" />
                         </AreaChart>
                     </ResponsiveContainer>
                 </motion.div>
@@ -122,11 +128,12 @@ export default function AnalyticsPage() {
                     <div className="flex items-center gap-2 mb-4"><BarChart3 size={18} className="text-orange-400" /><h3 className="font-semibold text-text-primary">{t('clubAdmin.analytics.popularEvents')}</h3></div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
-                            <thead><tr className="border-b border-surface-border text-text-muted"><th className="text-start pb-3 font-medium">Event</th><th className="text-center pb-3 font-medium">Registered</th><th className="text-end pb-3 font-medium">Fill Rate</th></tr></thead>
+                            <thead><tr className="border-b border-surface-border text-text-muted"><th className="text-start pb-3 font-medium">Event</th><th className="text-center pb-3 font-medium">Registered</th><th className="text-center pb-3 font-medium">Attended</th><th className="text-end pb-3 font-medium">Attendance Rate</th></tr></thead>
                             <tbody>{topEvents.map((event, i) => (
                                 <tr key={i} className="border-b border-surface-border last:border-0">
                                     <td className="py-3 text-text-primary font-medium">{isRTL ? event.name_ar : event.name}</td>
                                     <td className="py-3 text-center text-text-secondary">{event.registered}</td>
+                                    <td className="py-3 text-center text-text-secondary">{event.attended}</td>
                                     <td className="py-3 text-end"><span className={`text-xs font-medium px-2 py-0.5 rounded-lg ${event.rate >= 80 ? 'bg-status-success/15 text-status-success' : event.rate >= 60 ? 'bg-status-warning/15 text-status-warning' : 'bg-status-error/15 text-status-error'}`}>{event.rate}%</span></td>
                                 </tr>
                             ))}</tbody>

@@ -12,6 +12,10 @@ import {
   isUpcoming,
   truncateText,
 } from '../src/lib/utils'
+import {
+  summarizeAttendance,
+  summarizeAttendanceByEvent,
+} from '../src/lib/attendance'
 
 describe('date helpers', () => {
   beforeEach(() => {
@@ -133,5 +137,40 @@ describe('id and timer helpers', () => {
 
     expect(fn).toHaveBeenCalledOnce()
     expect(fn).toHaveBeenCalledWith('second')
+  })
+})
+
+describe('attendance helpers', () => {
+  it('summarizes confirmed attendance without counting cancelled registrations', () => {
+    expect(summarizeAttendance([
+      { status: 'confirmed', attended: true },
+      { status: 'confirmed', attended: false },
+      { status: 'cancelled', attended: true },
+      { status: 'waitlisted', attended: false },
+    ])).toEqual({
+      registered: 2,
+      attended: 1,
+      absent: 1,
+      cancelled: 1,
+      waitlisted: 1,
+      rate: 50,
+    })
+  })
+
+  it('groups registration records by event id', () => {
+    expect(summarizeAttendanceByEvent([
+      { event_id: 'event-1', id: 'reg-1' },
+      { event_id: 'event-2', id: 'reg-2' },
+      { event_id: 'event-1', id: 'reg-3' },
+      { id: 'missing-event' },
+    ])).toEqual({
+      'event-1': [
+        { event_id: 'event-1', id: 'reg-1' },
+        { event_id: 'event-1', id: 'reg-3' },
+      ],
+      'event-2': [
+        { event_id: 'event-2', id: 'reg-2' },
+      ],
+    })
   })
 })
