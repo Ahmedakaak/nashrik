@@ -1,8 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { mockClubs, mockEvents, mockMemberships, categoryColors, categoryIcons } from '../../lib/mockData'
-import { CLUB_CATEGORIES } from '../../lib/constants'
+import { useAuth } from '../../contexts/AuthContext'
+import { categoryColors, categoryIcons, CLUB_CATEGORIES } from '../../lib/constants'
+import { getClubById } from '../../lib/api/clubs'
+import { getEventsByClub } from '../../lib/api/events'
+import { getMembershipStatus, joinClub, leaveClub } from '../../lib/api/memberships'
+import { PageLoader } from '../../components/common/LoadingSpinner'
 import { motion } from 'framer-motion'
 import {
     ArrowLeft, Users, Calendar, UserPlus, CheckCircle2,
@@ -13,12 +17,40 @@ import toast from 'react-hot-toast'
 export default function ClubProfilePage() {
     const { id } = useParams()
     const { t, i18n } = useTranslation()
+    const { user } = useAuth()
     const isRTL = i18n.language === 'ar'
 
-    const club = mockClubs.find(c => c.id === id)
-    const isMember = mockMemberships.some(m => m.club_id === id)
-    const [joined, setJoined] = useState(isMember)
+    const [club, setClub] = useState(null)
+    const [clubEvents, setClubEvents] = useState([])
+    const [membership, setMembership] = useState(null) // null | { status: 'pending'|'approved' }
+    const [loading, setLoading] = useState(true)
+    const [actionLoading, setActionLoading] = useState(false)
     const [activeTab, setActiveTab] = useState('about')
+
+    useEffect(() => {
+        async function load() {
+            try {
+                const [c, events] = await Promise.all([
+                    getClubById(id),
+                    getEventsByClub(id),
+                ])
+                setClub(c)
+                setClubEvents(events.filter(e => e.status === 'published'))
+
+                if (user) {
+                    const ms = await getMembershipStatus(id, user.id)
+                    setMembership(ms)
+                }
+            } catch (err) {
+                console.error('ClubProfile load error:', err)
+            } finally {
+                setLoading(false)
+            }
+        }
+        load()
+    }, [id, user])
+
+    if (loading) return <PageLoader />
 
     if (!club) {
         return (
@@ -33,15 +65,26 @@ export default function ClubProfilePage() {
     }
 
     const colors = categoryColors[club.category] || categoryColors.academic
-    const clubEvents = mockEvents.filter(e => e.club_id === club.id)
+    const joined = membership?.status === 'approved'
+    const pending = membership?.status === 'pending'
 
-    const handleJoin = () => {
-        if (joined) {
-            setJoined(false)
-            toast.success('Left the club.')
-        } else {
-            setJoined(true)
-            toast.success('Join request sent! 🎉')
+    const handleJoin = async () => {
+        if (!user) return toast.error('Please log in first.')
+        setActionLoading(true)
+        try {
+            if (joined || pending) {
+                await leaveClub(id, user.id)
+                setMembership(null)
+                toast.success('Left the club.')
+            } else {
+                await joinClub(id, user.id)
+                setMembership({ status: 'pending' })
+                toast.success('Join request sent! 🎉')
+            }
+        } catch (err) {
+            toast.error(err.message || 'Something went wrong')
+        } finally {
+            setActionLoading(false)
         }
     }
 
@@ -75,10 +118,14 @@ export default function ClubProfilePage() {
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`rounded-2xl overflow-hidden mb-6 ${colors.bg}`}
+                className={`rounded-2xl overflow-hidden mb-6 ${club.cover_url ? '' : colors.bg}`}
             >
                 <div className="h-40 md:h-52 relative flex items-center justify-center">
-                    <span className="text-7xl md:text-9xl opacity-20">{categoryIcons[club.category]}</span>
+                    {club.cover_url ? (
+                        <img src={club.cover_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                        <span className="text-7xl md:text-9xl opacity-20">{categoryIcons[club.category]}</span>
+                    )}
                     <div className="absolute top-4 start-4">
                         <span className={`text-xs px-3 py-1.5 rounded-lg font-medium backdrop-blur-md ${colors.bg} ${colors.text} border ${colors.border}`}>
                             {categoryIcons[club.category]} {isRTL ? CLUB_CATEGORIES.find(c => c.value === club.category)?.labelAr : club.category}
@@ -97,8 +144,12 @@ export default function ClubProfilePage() {
                         transition={{ delay: 0.1 }}
                         className="flex items-start gap-4"
                     >
-                        <div className="w-16 h-16 rounded-2xl bg-surface-card border border-surface-border flex items-center justify-center text-3xl shadow-lg shrink-0">
-                            {categoryIcons[club.category]}
+                        <div className="w-16 h-16 rounded-2xl bg-surface-card border border-surface-border flex items-center justify-center text-3xl shadow-lg shrink-0 overflow-hidden">
+                            {club.logo_url ? (
+                                <img src={club.logo_url} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                                categoryIcons[club.category]
+                            )}
                         </div>
                         <div className="flex-1 min-w-0">
                             <h1 className="text-2xl md:text-3xl font-bold text-text-primary">
@@ -218,15 +269,25 @@ export default function ClubProfilePage() {
                         <motion.button
                             whileTap={{ scale: 0.97 }}
                             onClick={handleJoin}
+                            disabled={actionLoading}
                             className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold transition-all duration-300 cursor-pointer mb-4 ${joined
                                     ? 'bg-brand-400/15 text-brand-400 border border-brand-400/30 hover:bg-status-error/15 hover:text-status-error hover:border-status-error/30'
-                                    : 'gradient-bg text-white shadow-lg shadow-brand-400/20 hover:shadow-brand-400/40'
+                                    : pending
+                                        ? 'bg-yellow-400/15 text-yellow-400 border border-yellow-400/30'
+                                        : 'gradient-bg text-white shadow-lg shadow-brand-400/20 hover:shadow-brand-400/40'
                                 }`}
                         >
-                            {joined ? (
+                            {actionLoading ? (
+                                <span className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                            ) : joined ? (
                                 <>
                                     <CheckCircle2 size={18} />
                                     {t('clubs.joined')}
+                                </>
+                            ) : pending ? (
+                                <>
+                                    <Clock size={18} />
+                                    Pending Approval
                                 </>
                             ) : (
                                 <>
@@ -236,7 +297,7 @@ export default function ClubProfilePage() {
                             )}
                         </motion.button>
 
-                        {joined && (
+                        {(joined || pending) && (
                             <p className="text-xs text-text-muted text-center mb-4">
                                 Click to leave
                             </p>

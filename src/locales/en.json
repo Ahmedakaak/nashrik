@@ -166,6 +166,22 @@
         "noRegistrations": "No registrations yet"
     },
     "clubAdmin": {
+        "apply": {
+            "title": "Start a New Club",
+            "subtitle": "Fill out the details below to submit your club application for approval.",
+            "name": "Club Name (English)",
+            "nameAr": "Club Name (Arabic)",
+            "description": "Description (English)",
+            "descriptionAr": "Description (Arabic)",
+            "category": "Category",
+            "submit": "Submit Application",
+            "success": "Application submitted successfully! Waiting for approval.",
+            "pendingTitle": "Application Pending",
+            "pendingDesc": "Your club application is currently under review by the system administrators. You will be notified once it is approved.",
+            "noClubTitle": "No Club Assigned",
+            "noClubDesc": "You don't have an assigned club yet. You can apply to start a new club.",
+            "startClubBtn": "Apply for a Club"
+        },
         "dashboard": {
             "title": "Club Dashboard",
             "totalMembers": "Total Members",

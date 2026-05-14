@@ -1,49 +1,44 @@
-import { useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { mockClubs, mockMemberships, categoryColors, categoryIcons } from '../../lib/mockData'
-import { CLUB_CATEGORIES } from '../../lib/constants'
+import { useAuth } from '../../contexts/AuthContext'
+import { categoryColors, categoryIcons, CLUB_CATEGORIES } from '../../lib/constants'
+import { getMyMemberships } from '../../lib/api/memberships'
+import { PageLoader } from '../../components/common/LoadingSpinner'
 import { motion } from 'framer-motion'
 import { Users, ArrowRight, Clock, CheckCircle2 } from 'lucide-react'
 
 export default function MyClubsPage() {
     const { t, i18n } = useTranslation()
+    const { user } = useAuth()
     const isRTL = i18n.language === 'ar'
+    const [myClubsData, setMyClubsData] = useState([])
+    const [loading, setLoading] = useState(true)
 
-    const myClubsData = useMemo(() => {
-        // Filter to only approved and pending memberships
-        const activeMemberships = mockMemberships.filter(
-            (m) => m.status === 'approved' || m.status === 'pending'
-        )
+    useEffect(() => {
+        if (!user) return
+        async function load() {
+            try {
+                const memberships = await getMyMemberships(user.id)
+                const data = memberships
+                    .filter(m => m.status === 'approved' || m.status === 'pending')
+                    .map(m => ({ ...m.club, membershipStatus: m.status }))
+                    .filter(Boolean)
+                setMyClubsData(data)
+            } catch (err) { console.error('MyClubs load error:', err) }
+            finally { setLoading(false) }
+        }
+        load()
+    }, [user])
 
-        // Join with clubs data
-        return activeMemberships.map((membership) => {
-            const clubInfo = mockClubs.find((c) => c.id === membership.club_id)
-            return {
-                ...clubInfo,
-                membershipStatus: membership.status,
-            }
-        }).filter(Boolean) // Remove any undefined entries if club data is missing
-    }, [])
+    const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08 } } }
+    const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } }
 
-    const container = {
-        hidden: { opacity: 0 },
-        show: { opacity: 1, transition: { staggerChildren: 0.08 } },
-    }
-
-    const item = {
-        hidden: { opacity: 0, y: 16 },
-        show: { opacity: 1, y: 0 },
-    }
+    if (loading) return <PageLoader />
 
     return (
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
-            {/* Header */}
-            <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-8"
-            >
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
                 <h1 className="text-2xl md:text-3xl font-bold text-text-primary">
                     {t('dashboard.quickActions.myClubs') || 'My Clubs'}
                 </h1>
@@ -53,67 +48,48 @@ export default function MyClubsPage() {
             </motion.div>
 
             {myClubsData.length > 0 ? (
-                <motion.div
-                    initial="hidden"
-                    animate="show"
-                    variants={container}
-                    className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5"
-                >
+                <motion.div initial="hidden" animate="show" variants={container} className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                     {myClubsData.map((club) => {
                         const colors = categoryColors[club.category] || categoryColors.academic
                         const isApproved = club.membershipStatus === 'approved'
 
                         return (
                             <motion.div key={club.id} variants={item}>
-                                <Link
-                                    to={`/clubs/${club.id}`}
-                                    className="block bg-surface-card border border-surface-border rounded-2xl overflow-hidden hover:border-brand-400/30 transition-all duration-200 group hover-lift h-full flex flex-col"
-                                >
-                                    {/* Cover area */}
+                                <Link to={`/clubs/${club.id}`} className="block bg-surface-card border border-surface-border rounded-2xl overflow-hidden hover:border-brand-400/30 transition-all duration-200 group hover-lift h-full flex flex-col">
                                     <div className={`h-32 relative ${colors.bg}`}>
                                         <div className="absolute inset-0 flex items-center justify-center">
                                             <span className="text-5xl opacity-50">{categoryIcons[club.category]}</span>
                                         </div>
-
-                                        {/* Category badge */}
                                         <div className="absolute top-3 start-3">
                                             <span className={`text-xs px-2.5 py-1 rounded-lg font-medium backdrop-blur-sm ${colors.bg} ${colors.text} border ${colors.border}`}>
                                                 {isRTL ? CLUB_CATEGORIES.find(c => c.value === club.category)?.labelAr : club.category}
                                             </span>
                                         </div>
-
-                                        {/* Status badge */}
                                         <div className="absolute top-3 end-3">
                                             {isApproved ? (
                                                 <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-brand-400/20 text-brand-400 font-medium border border-brand-400/30 backdrop-blur-sm">
-                                                    <CheckCircle2 size={12} />
-                                                    {t('clubs.joined') || 'Joined'}
+                                                    <CheckCircle2 size={12} />{t('clubs.joined') || 'Joined'}
                                                 </span>
                                             ) : (
                                                 <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-status-warning/20 text-status-warning font-medium border border-status-warning/30 backdrop-blur-sm">
-                                                    <Clock size={12} />
-                                                    Pending
+                                                    <Clock size={12} />Pending
                                                 </span>
                                             )}
                                         </div>
                                     </div>
 
-                                    {/* Content */}
                                     <div className="p-5 flex-1 flex flex-col">
-                                        {/* Logo placeholder */}
                                         <div className="-mt-10 mb-3 relative z-10">
-                                            <div className="w-14 h-14 rounded-2xl bg-surface-dark border-2 border-surface-card flex items-center justify-center text-2xl shadow-lg">
-                                                {categoryIcons[club.category]}
+                                            <div className="w-14 h-14 rounded-2xl bg-surface-dark border-2 border-surface-card flex items-center justify-center text-2xl shadow-lg overflow-hidden">
+                                                {club.logo_url ? <img src={club.logo_url} alt="" className="w-full h-full object-cover" /> : categoryIcons[club.category]}
                                             </div>
                                         </div>
-
                                         <h3 className="font-semibold text-lg text-text-primary group-hover:text-brand-400 transition-colors">
                                             {isRTL ? club.name_ar : club.name}
                                         </h3>
                                         <p className="text-sm text-text-secondary mt-1 flex-1 line-clamp-2 leading-relaxed">
                                             {isRTL ? club.description_ar : club.description}
                                         </p>
-
                                         <div className="flex items-center justify-between mt-4 pt-4 border-t border-surface-border">
                                             <span className="flex items-center gap-1.5 text-sm text-text-muted">
                                                 <Users size={14} />
@@ -136,10 +112,7 @@ export default function MyClubsPage() {
                     <p className="text-text-secondary mb-6 max-w-md mx-auto">
                         You haven't joined any clubs or requested membership yet. Explore the available clubs to connect with like-minded students!
                     </p>
-                    <Link
-                        to="/clubs"
-                        className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl gradient-bg text-white font-medium hover:shadow-lg hover:shadow-brand-400/20 transition-all active:scale-[0.98]"
-                    >
+                    <Link to="/clubs" className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl gradient-bg text-white font-medium hover:shadow-lg hover:shadow-brand-400/20 transition-all active:scale-[0.98]">
                         Browse Clubs
                         <ArrowRight size={16} className="icon-flip" />
                     </Link>

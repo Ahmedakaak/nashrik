@@ -1,29 +1,53 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { mockClubs, mockMemberships, categoryColors, categoryIcons } from '../../lib/mockData'
-import { CLUB_CATEGORIES } from '../../lib/constants'
+import { useAuth } from '../../contexts/AuthContext'
+import { categoryColors, categoryIcons, CLUB_CATEGORIES } from '../../lib/constants'
+import { getClubs } from '../../lib/api/clubs'
+import { getMyMemberships } from '../../lib/api/memberships'
+import { PageLoader } from '../../components/common/LoadingSpinner'
 import { motion } from 'framer-motion'
 import { Search, Users, ArrowRight, X, CheckCircle2 } from 'lucide-react'
 
 export default function ClubsPage() {
     const { t, i18n } = useTranslation()
+    const { user } = useAuth()
     const isRTL = i18n.language === 'ar'
 
+    const [clubs, setClubs] = useState([])
+    const [memberClubIds, setMemberClubIds] = useState([])
+    const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
     const [selectedCategory, setSelectedCategory] = useState('all')
 
-    const memberClubIds = mockMemberships.map(m => m.club_id)
+    useEffect(() => {
+        async function load() {
+            try {
+                const allClubs = await getClubs({ status: 'approved' })
+                setClubs(allClubs)
+
+                if (user) {
+                    const membs = await getMyMemberships(user.id)
+                    setMemberClubIds(membs.filter(m => m.status === 'approved').map(m => m.club_id))
+                }
+            } catch (err) {
+                console.error('ClubsPage load error:', err)
+            } finally {
+                setLoading(false)
+            }
+        }
+        load()
+    }, [user])
 
     const filteredClubs = useMemo(() => {
-        return mockClubs.filter(club => {
+        return clubs.filter(club => {
             const matchesSearch = search === '' ||
-                club.name.toLowerCase().includes(search.toLowerCase()) ||
-                club.name_ar.includes(search)
+                club.name?.toLowerCase().includes(search.toLowerCase()) ||
+                club.name_ar?.includes(search)
             const matchesCategory = selectedCategory === 'all' || club.category === selectedCategory
             return matchesSearch && matchesCategory
         })
-    }, [search, selectedCategory])
+    }, [clubs, search, selectedCategory])
 
     const categories = [
         { value: 'all', label: t('events.filters.all'), icon: '🌟' },
@@ -33,6 +57,8 @@ export default function ClubsPage() {
             icon: c.icon,
         })),
     ]
+
+    if (loading) return <PageLoader />
 
     return (
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
@@ -119,10 +145,14 @@ export default function ClubsPage() {
                                     className="block bg-surface-card border border-surface-border rounded-2xl overflow-hidden hover:border-brand-400/30 transition-all duration-200 group hover-lift h-full"
                                 >
                                     {/* Cover area */}
-                                    <div className={`h-32 relative ${colors.bg}`}>
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            <span className="text-5xl opacity-50">{categoryIcons[club.category]}</span>
-                                        </div>
+                                    <div className={`h-32 relative ${club.cover_url ? '' : colors.bg}`}>
+                                        {club.cover_url ? (
+                                            <img src={club.cover_url} alt="" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <span className="text-5xl opacity-50">{categoryIcons[club.category]}</span>
+                                            </div>
+                                        )}
 
                                         {/* Category badge */}
                                         <div className="absolute top-3 start-3">
@@ -146,8 +176,12 @@ export default function ClubsPage() {
                                     <div className="p-5">
                                         {/* Logo placeholder */}
                                         <div className="-mt-10 mb-3 relative z-10">
-                                            <div className="w-14 h-14 rounded-2xl bg-surface-dark border-2 border-surface-card flex items-center justify-center text-2xl shadow-lg">
-                                                {categoryIcons[club.category]}
+                                            <div className="w-14 h-14 rounded-2xl bg-surface-dark border-2 border-surface-card flex items-center justify-center text-2xl shadow-lg overflow-hidden">
+                                                {club.logo_url ? (
+                                                    <img src={club.logo_url} alt="" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    categoryIcons[club.category]
+                                                )}
                                             </div>
                                         </div>
 

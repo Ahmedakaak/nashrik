@@ -1,8 +1,12 @@
-import { useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../contexts/AuthContext'
-import { mockEvents, mockRegistrations, mockClubs, mockMemberships, categoryColors, categoryIcons } from '../../lib/mockData'
+import { categoryColors, categoryIcons } from '../../lib/constants'
+import { getEvents } from '../../lib/api/events'
+import { getMyRegistrations } from '../../lib/api/registrations'
+import { getMyMemberships } from '../../lib/api/memberships'
+import { PageLoader } from '../../components/common/LoadingSpinner'
 import { motion } from 'framer-motion'
 import {
     Calendar, Clock, MapPin, ArrowRight, Users,
@@ -11,8 +15,34 @@ import {
 
 export default function DashboardPage() {
     const { t, i18n } = useTranslation()
-    const { profile } = useAuth()
+    const { profile, user } = useAuth()
     const isRTL = i18n.language === 'ar'
+
+    const [registrations, setRegistrations] = useState([])
+    const [memberships, setMemberships] = useState([])
+    const [allEvents, setAllEvents] = useState([])
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        if (!user) return
+        async function load() {
+            try {
+                const [regs, membs, events] = await Promise.all([
+                    getMyRegistrations(user.id),
+                    getMyMemberships(user.id),
+                    getEvents({ status: 'published' }),
+                ])
+                setRegistrations(regs)
+                setMemberships(membs)
+                setAllEvents(events)
+            } catch (err) {
+                console.error('Dashboard load error:', err)
+            } finally {
+                setLoading(false)
+            }
+        }
+        load()
+    }, [user])
 
     const getGreeting = () => {
         const hour = new Date().getHours()
@@ -25,25 +55,31 @@ export default function DashboardPage() {
 
     // My upcoming events (registered)
     const myUpcomingEvents = useMemo(() => {
-        const regEventIds = mockRegistrations.map(r => r.event_id)
-        return mockEvents
+        const regEventIds = registrations.map(r => r.event_id || r.event?.id)
+        return allEvents
             .filter(e => regEventIds.includes(e.id) && new Date(e.date) > new Date())
             .sort((a, b) => new Date(a.date) - new Date(b.date))
-    }, [])
+    }, [registrations, allEvents])
 
     // Recommended events (not registered yet, upcoming)
     const recommendedEvents = useMemo(() => {
-        const regEventIds = mockRegistrations.map(r => r.event_id)
-        return mockEvents
+        const regEventIds = registrations.map(r => r.event_id || r.event?.id)
+        return allEvents
             .filter(e => !regEventIds.includes(e.id) && new Date(e.date) > new Date())
             .slice(0, 3)
-    }, [])
+    }, [registrations, allEvents])
 
     // My clubs
     const myClubs = useMemo(() => {
-        const clubIds = mockMemberships.map(m => m.club_id)
-        return mockClubs.filter(c => clubIds.includes(c.id))
-    }, [])
+        return memberships
+            .filter(m => m.status === 'approved')
+            .map(m => m.club)
+            .filter(Boolean)
+    }, [memberships])
+
+    const attendedCount = useMemo(() => {
+        return registrations.filter(r => r.attended).length
+    }, [registrations])
 
     const formatDate = (dateStr) => {
         const d = new Date(dateStr)
@@ -56,10 +92,10 @@ export default function DashboardPage() {
     }
 
     const stats = [
-        { label: t('dashboard.quickActions.browseEvents'), value: mockRegistrations.length, icon: CalendarDays, color: 'text-brand-400', bg: 'bg-brand-400/10' },
+        { label: t('dashboard.quickActions.browseEvents'), value: registrations.length, icon: CalendarDays, color: 'text-brand-400', bg: 'bg-brand-400/10' },
         { label: t('dashboard.quickActions.myClubs'), value: myClubs.length, icon: BookOpen, color: 'text-purple-400', bg: 'bg-purple-400/10' },
-        { label: t('dashboard.quickActions.myRegistrations'), value: mockRegistrations.length, icon: ClipboardList, color: 'text-blue-400', bg: 'bg-blue-400/10' },
-        { label: 'Events Attended', value: 0, icon: TrendingUp, color: 'text-orange-400', bg: 'bg-orange-400/10' },
+        { label: t('dashboard.quickActions.myRegistrations'), value: registrations.length, icon: ClipboardList, color: 'text-blue-400', bg: 'bg-blue-400/10' },
+        { label: 'Events Attended', value: attendedCount, icon: TrendingUp, color: 'text-orange-400', bg: 'bg-orange-400/10' },
     ]
 
     const container = {
@@ -70,6 +106,8 @@ export default function DashboardPage() {
         hidden: { opacity: 0, y: 16 },
         show: { opacity: 1, y: 0 },
     }
+
+    if (loading) return <PageLoader />
 
     return (
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-8">

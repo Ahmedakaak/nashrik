@@ -41,3 +41,18 @@ export const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 export const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5MB
 export const ITEMS_PER_PAGE = 12
 export const QR_REFRESH_INTERVAL = 30000 // 30 seconds
+
+// Category color palette (UI constants)
+export const categoryColors = {
+    academic: { bg: 'bg-blue-500/15', text: 'text-blue-400', border: 'border-blue-500/30' },
+    sports: { bg: 'bg-orange-500/15', text: 'text-orange-400', border: 'border-orange-500/30' },
+    cultural: { bg: 'bg-purple-500/15', text: 'text-purple-400', border: 'border-purple-500/30' },
+    community: { bg: 'bg-green-500/15', text: 'text-green-400', border: 'border-green-500/30' },
+}
+
+export const categoryIcons = {
+    academic: '📚',
+    sports: '⚽',
+    cultural: '🎭',
+    community: '🤝',
+}

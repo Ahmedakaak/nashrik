@@ -170,23 +170,6 @@ export const AuthProvider = ({ children }) => {
     }
 
     /**
-     * Developer utility function: Completely bypasses authentic Supabase processes to establish an immediate, simulated sign-in state 
-     * utilizing hardcoded dummy profiles. Useful for accelerating UI testing across varying access levels.
-     * 
-     * @param {string} role - The target system role to mimic ('student', 'club_admin', 'system_admin').
-     */
-    const devLogin = (role) => {
-        const mockProfiles = {
-            student: { id: 'dev-student', full_name: 'Sara Al-Habsi', student_id: '21F1234', role: 'student', avatar_url: null },
-            club_admin: { id: 'dev-club-admin', full_name: 'Noor Al-Busaidi', student_id: '20F0001', role: 'club_admin', avatar_url: null },
-            system_admin: { id: 'dev-sys-admin', full_name: 'Dr. Ahmed Al-Siyabi', student_id: null, role: 'system_admin', avatar_url: null },
-        }
-        setUser({ id: mockProfiles[role].id, email: `${role}@dev.nashark` }) // Populate fake user session
-        setProfile(mockProfiles[role]) // Populate fake database profile records
-        setLoading(false)
-    }
-
-    /**
      * Conducts end-to-end operation for updating the account profile picture. This entails preliminary validations, 
      * on-the-fly image compression, garbage-collecting the previous avatar to conserve storage quotas, 
      * transmitting the new blob, and ultimately registering the URL to the updated database profile segment.
@@ -282,7 +265,6 @@ export const AuthProvider = ({ children }) => {
         resetPassword,
         updateProfile,
         fetchProfile,
-        devLogin,
         uploadAvatar,
     }
 

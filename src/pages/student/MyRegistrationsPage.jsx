@@ -1,26 +1,62 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { mockEvents, mockRegistrations, categoryColors, categoryIcons } from '../../lib/mockData'
+import { useAuth } from '../../contexts/AuthContext'
+import { categoryColors, categoryIcons } from '../../lib/constants'
+import { getMyRegistrations } from '../../lib/api/registrations'
+import QRCode from 'qrcode'
+import { PageLoader } from '../../components/common/LoadingSpinner'
 import { motion } from 'framer-motion'
 import {
     Calendar, Clock, MapPin, QrCode, ArrowRight,
     CalendarDays, CalendarCheck, CalendarClock, X
 } from 'lucide-react'
 
+function QRCodeDisplay({ text }) {
+    const [qrUrl, setQrUrl] = useState('')
+
+    useEffect(() => {
+        QRCode.toDataURL(text, { width: 160, margin: 1, color: { dark: '#000000FF', light: '#FFFFFFFF' } })
+            .then(url => setQrUrl(url))
+            .catch(err => console.error(err))
+    }, [text])
+
+    if (!qrUrl) return <div className="w-40 h-40 bg-gray-100 animate-pulse rounded-xl" />
+    
+    return <img src={qrUrl} alt="QR Code" className="w-40 h-40 rounded-xl" />
+}
+
 export default function MyRegistrationsPage() {
     const { t, i18n } = useTranslation()
+    const { user } = useAuth()
     const isRTL = i18n.language === 'ar'
 
+    const [registrations, setRegistrations] = useState([])
+    const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState('upcoming')
     const [showQR, setShowQR] = useState(null)
 
+    useEffect(() => {
+        if (!user) return
+        async function load() {
+            try {
+                const regs = await getMyRegistrations(user.id)
+                setRegistrations(regs)
+            } catch (err) {
+                console.error('MyRegistrations load error:', err)
+            } finally {
+                setLoading(false)
+            }
+        }
+        load()
+    }, [user])
+
     const registeredEvents = useMemo(() => {
-        return mockRegistrations.map(reg => {
-            const event = mockEvents.find(e => e.id === reg.event_id)
-            return { ...reg, event }
-        }).filter(r => r.event)
-    }, [])
+        return registrations.filter(r => r.event).map(r => ({
+            ...r,
+            event: r.event,
+        }))
+    }, [registrations])
 
     const upcomingRegs = registeredEvents.filter(r => new Date(r.event.date) > new Date())
     const pastRegs = registeredEvents.filter(r => new Date(r.event.date) <= new Date())
@@ -46,6 +82,8 @@ export default function MyRegistrationsPage() {
         { key: 'past', label: t('registrations.tabs.past'), icon: CalendarDays, count: pastRegs.length },
         { key: 'attended', label: t('registrations.tabs.attended'), icon: CalendarCheck, count: attendedRegs.length },
     ]
+
+    if (loading) return <PageLoader />
 
     return (
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
@@ -99,7 +137,7 @@ export default function MyRegistrationsPage() {
 
                         return (
                             <div
-                                key={reg.event_id}
+                                key={reg.event_id || reg.id}
                                 className="bg-surface-card border border-surface-border rounded-2xl p-4 md:p-5 hover:border-brand-400/20 transition-all"
                             >
                                 <div className="flex items-start gap-4">
@@ -133,7 +171,7 @@ export default function MyRegistrationsPage() {
                                         </Link>
 
                                         <p className="text-xs text-text-muted mt-0.5">
-                                            {isRTL ? event.club.name_ar : event.club.name}
+                                            {isRTL ? event.club?.name_ar : event.club?.name}
                                         </p>
 
                                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-sm text-text-muted">
@@ -168,13 +206,7 @@ export default function MyRegistrationsPage() {
                                         className="mt-4 pt-4 border-t border-surface-border text-center"
                                     >
                                         <div className="inline-block bg-white rounded-2xl p-4">
-                                            {/* QR Code placeholder - replace with actual qrcode library */}
-                                            <div className="w-40 h-40 bg-gray-100 rounded-xl flex items-center justify-center">
-                                                <div className="text-center">
-                                                    <QrCode size={48} className="mx-auto text-gray-800 mb-1" />
-                                                    <p className="text-[10px] text-gray-600 font-mono">{reg.event_id}-{Date.now()}</p>
-                                                </div>
-                                            </div>
+                                            <QRCodeDisplay text={reg.qr_token || reg.id} />
                                         </div>
                                         <p className="text-xs text-text-muted mt-3">
                                             Show this QR code at the event for attendance

@@ -1,8 +1,11 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { mockEvents, mockRegistrations, categoryColors, categoryIcons } from '../../lib/mockData'
-import { CLUB_CATEGORIES } from '../../lib/constants'
+import { useAuth } from '../../contexts/AuthContext'
+import { categoryColors, categoryIcons, CLUB_CATEGORIES } from '../../lib/constants'
+import { getEventById, getEvents, subscribeToEvent } from '../../lib/api/events'
+import { isRegistered as checkRegistered, registerForEvent, cancelRegistration } from '../../lib/api/registrations'
+import { PageLoader } from '../../components/common/LoadingSpinner'
 import { motion } from 'framer-motion'
 import {
     Calendar, Clock, MapPin, Users, ArrowLeft, Tag,
@@ -14,12 +17,54 @@ import toast from 'react-hot-toast'
 export default function EventDetailsPage() {
     const { id } = useParams()
     const { t, i18n } = useTranslation()
+    const { user } = useAuth()
     const isRTL = i18n.language === 'ar'
 
-    const event = mockEvents.find(e => e.id === id)
-    const isRegistered = mockRegistrations.some(r => r.event_id === id)
-    const [registered, setRegistered] = useState(isRegistered)
-    const [regCount, setRegCount] = useState(event?.registered_count || 0)
+    const [event, setEvent] = useState(null)
+    const [registered, setRegistered] = useState(false)
+    const [regCount, setRegCount] = useState(0)
+    const [relatedEvents, setRelatedEvents] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [actionLoading, setActionLoading] = useState(false)
+
+    useEffect(() => {
+        async function load() {
+            try {
+                const evt = await getEventById(id)
+                setEvent(evt)
+                setRegCount(evt.registered_count || 0)
+
+                // Check registration status
+                if (user) {
+                    const reg = await checkRegistered(id, user.id)
+                    setRegistered(!!reg)
+                }
+
+                // Get related events (same category)
+                const related = await getEvents({ status: 'published', category: evt.category })
+                setRelatedEvents(related.filter(e => e.id !== id).slice(0, 3))
+            } catch (err) {
+                console.error('EventDetails load error:', err)
+                setEvent(null)
+            } finally {
+                setLoading(false)
+            }
+        }
+        load()
+
+        // Real-time subscription to update registration count if another user registers
+        const channel = subscribeToEvent(id, (updatedEvent) => {
+            if (updatedEvent && updatedEvent.registered_count !== undefined) {
+                setRegCount(updatedEvent.registered_count)
+            }
+        })
+
+        return () => {
+            if (channel) channel.unsubscribe()
+        }
+    }, [id, user])
+
+    if (loading) return <PageLoader />
 
     if (!event) {
         return (
@@ -39,15 +84,28 @@ export default function EventDetailsPage() {
     const isFull = spotsLeft <= 0
     const percentFull = Math.round((regCount / event.max_capacity) * 100)
 
-    const handleRegister = () => {
-        if (registered) {
-            setRegistered(false)
-            setRegCount(prev => prev - 1)
-            toast.success('Registration cancelled.')
-        } else if (!isFull) {
-            setRegistered(true)
-            setRegCount(prev => prev + 1)
-            toast.success('Successfully registered! 🎉')
+    const handleRegister = async () => {
+        if (!user) {
+            toast.error('Please log in to register.')
+            return
+        }
+        setActionLoading(true)
+        try {
+            if (registered) {
+                await cancelRegistration(id, user.id)
+                setRegistered(false)
+                setRegCount(prev => prev - 1)
+                toast.success('Registration cancelled.')
+            } else if (!isFull) {
+                await registerForEvent(id, user.id)
+                setRegistered(true)
+                setRegCount(prev => prev + 1)
+                toast.success('Successfully registered! 🎉')
+            }
+        } catch (err) {
+            toast.error(err.message || 'Something went wrong')
+        } finally {
+            setActionLoading(false)
         }
     }
 
@@ -72,11 +130,6 @@ export default function EventDetailsPage() {
         return d.toLocaleTimeString(isRTL ? 'ar-OM' : 'en-US', { hour: '2-digit', minute: '2-digit' })
     }
 
-    // Related events (same category, excluding current)
-    const relatedEvents = mockEvents
-        .filter(e => e.category === event.category && e.id !== event.id)
-        .slice(0, 3)
-
     return (
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
             {/* Breadcrumb */}
@@ -100,9 +153,13 @@ export default function EventDetailsPage() {
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className={`h-48 md:h-64 rounded-2xl ${colors.bg} flex items-center justify-center relative overflow-hidden`}
+                        className={`h-48 md:h-64 rounded-2xl ${event.cover_url ? '' : colors.bg} flex items-center justify-center relative overflow-hidden`}
                     >
-                        <span className="text-7xl md:text-8xl opacity-40">{categoryIcons[event.category]}</span>
+                        {event.cover_url ? (
+                            <img src={event.cover_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                            <span className="text-7xl md:text-8xl opacity-40">{categoryIcons[event.category]}</span>
+                        )}
                         {/* Tags overlay */}
                         <div className="absolute top-4 start-4 flex gap-2">
                             <span className={`text-xs px-3 py-1.5 rounded-lg font-medium backdrop-blur-md ${colors.bg} ${colors.text} border ${colors.border}`}>
@@ -133,7 +190,7 @@ export default function EventDetailsPage() {
                                 {categoryIcons[event.category]}
                             </div>
                             <span className="text-sm font-medium">
-                                {t('events.details.hostedBy')} {isRTL ? event.club.name_ar : event.club.name}
+                                {t('events.details.hostedBy')} {isRTL ? event.club?.name_ar : event.club?.name}
                             </span>
                         </Link>
                     </motion.div>
@@ -274,15 +331,17 @@ export default function EventDetailsPage() {
                         <motion.button
                             whileTap={{ scale: 0.97 }}
                             onClick={handleRegister}
-                            disabled={isFull && !registered}
+                            disabled={(isFull && !registered) || actionLoading}
                             className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold transition-all duration-300 cursor-pointer ${registered
-                                ? 'bg-brand-400/15 text-brand-400 border border-brand-400/30 hover:bg-status-error/15 hover:text-status-error hover:border-status-error/30'
-                                : isFull
-                                    ? 'bg-surface-border text-text-muted cursor-not-allowed'
-                                    : 'gradient-bg text-white shadow-lg shadow-brand-400/20 hover:shadow-brand-400/40'
+                                    ? 'bg-brand-400/15 text-brand-400 border border-brand-400/30 hover:bg-status-error/15 hover:text-status-error hover:border-status-error/30'
+                                    : isFull
+                                        ? 'bg-surface-border text-text-muted cursor-not-allowed'
+                                        : 'gradient-bg text-white shadow-lg shadow-brand-400/20 hover:shadow-brand-400/40'
                                 }`}
                         >
-                            {registered ? (
+                            {actionLoading ? (
+                                <span className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                            ) : registered ? (
                                 <>
                                     <CheckCircle2 size={18} />
                                     {t('events.registered')}

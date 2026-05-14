@@ -1,8 +1,11 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { mockEvents, mockRegistrations, categoryColors, categoryIcons } from '../../lib/mockData'
-import { CLUB_CATEGORIES } from '../../lib/constants'
+import { useAuth } from '../../contexts/AuthContext'
+import { categoryColors, categoryIcons, CLUB_CATEGORIES } from '../../lib/constants'
+import { getEvents } from '../../lib/api/events'
+import { getMyRegistrations } from '../../lib/api/registrations'
+import { PageLoader } from '../../components/common/LoadingSpinner'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
     Search, Calendar, MapPin, Users, Clock, Filter,
@@ -11,24 +14,45 @@ import {
 
 export default function EventsPage() {
     const { t, i18n } = useTranslation()
+    const { user } = useAuth()
     const isRTL = i18n.language === 'ar'
 
+    const [events, setEvents] = useState([])
+    const [regEventIds, setRegEventIds] = useState([])
+    const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
     const [selectedCategory, setSelectedCategory] = useState('all')
     const [showFilters, setShowFilters] = useState(false)
 
-    const regEventIds = mockRegistrations.map(r => r.event_id)
+    useEffect(() => {
+        async function load() {
+            try {
+                const evts = await getEvents({ status: 'published' })
+                setEvents(evts)
+
+                if (user) {
+                    const regs = await getMyRegistrations(user.id)
+                    setRegEventIds(regs.map(r => r.event_id))
+                }
+            } catch (err) {
+                console.error('EventsPage load error:', err)
+            } finally {
+                setLoading(false)
+            }
+        }
+        load()
+    }, [user])
 
     const filteredEvents = useMemo(() => {
-        return mockEvents.filter(event => {
+        return events.filter(event => {
             const matchesSearch = search === '' ||
-                event.title.toLowerCase().includes(search.toLowerCase()) ||
-                event.title_ar.includes(search) ||
-                event.club.name.toLowerCase().includes(search.toLowerCase())
+                event.title?.toLowerCase().includes(search.toLowerCase()) ||
+                event.title_ar?.includes(search) ||
+                event.club?.name?.toLowerCase().includes(search.toLowerCase())
             const matchesCategory = selectedCategory === 'all' || event.category === selectedCategory
             return matchesSearch && matchesCategory
         })
-    }, [search, selectedCategory])
+    }, [events, search, selectedCategory])
 
     const formatDate = (dateStr) => {
         const d = new Date(dateStr)
@@ -50,6 +74,8 @@ export default function EventsPage() {
     ]
 
     const activeFilterCount = (selectedCategory !== 'all' ? 1 : 0) + (search ? 1 : 0)
+
+    if (loading) return <PageLoader />
 
     return (
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
@@ -179,10 +205,14 @@ export default function EventsPage() {
                                     className="block bg-surface-card border border-surface-border rounded-2xl overflow-hidden hover:border-brand-400/30 transition-all duration-200 group hover-lift h-full"
                                 >
                                     {/* Cover */}
-                                    <div className={`h-36 relative ${colors.bg}`}>
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            <span className="text-5xl opacity-60">{categoryIcons[event.category]}</span>
-                                        </div>
+                                    <div className={`h-36 relative ${event.cover_url ? '' : colors.bg}`}>
+                                        {event.cover_url ? (
+                                            <img src={event.cover_url} alt="" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <span className="text-5xl opacity-60">{categoryIcons[event.category]}</span>
+                                            </div>
+                                        )}
                                         {/* Tags */}
                                         <div className="absolute top-3 start-3 flex gap-1.5">
                                             <span className={`text-xs px-2.5 py-1 rounded-lg font-medium backdrop-blur-sm ${colors.bg} ${colors.text} border ${colors.border}`}>
@@ -212,7 +242,7 @@ export default function EventsPage() {
                                                 {isRTL ? event.title_ar : event.title}
                                             </h3>
                                             <p className="text-xs text-text-muted mt-0.5">
-                                                {isRTL ? event.club.name_ar : event.club.name}
+                                                {isRTL ? event.club?.name_ar : event.club?.name}
                                             </p>
                                         </div>
 

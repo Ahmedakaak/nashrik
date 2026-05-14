@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../contexts/AuthContext'
@@ -7,6 +7,8 @@ import {
     ChevronDown
 } from 'lucide-react'
 import { cn, getInitials } from '../../lib/utils'
+import { getNotifications, subscribeToNotifications } from '../../lib/api/notifications'
+import toast from 'react-hot-toast'
 
 export default function Header({ onMenuToggle, isSidebarOpen }) {
     const { t, i18n } = useTranslation()
@@ -15,8 +17,61 @@ export default function Header({ onMenuToggle, isSidebarOpen }) {
     const location = useLocation()
     const [showUserMenu, setShowUserMenu] = useState(false)
     const [showNotifs, setShowNotifs] = useState(false)
+    const [unreadCount, setUnreadCount] = useState(0)
 
     const isRTL = i18n.language === 'ar'
+
+    useEffect(() => {
+        if (!user) return
+
+        let mounted = true
+        async function loadUnread() {
+            try {
+                const data = await getNotifications(user.id)
+                const unread = data.filter(n => !n.read)
+                if (mounted) {
+                    setUnreadCount(unread.length)
+                    if (unread.length > 0 && !sessionStorage.getItem('notif_greeted')) {
+                        sessionStorage.setItem('notif_greeted', 'true')
+                        toast(
+                            <div className="flex items-center gap-2">
+                                <span className="text-lg">🔔</span>
+                                <span className="font-medium">You have {unread.length} unread {unread.length === 1 ? 'notification' : 'notifications'}</span>
+                            </div>, 
+                            { duration: 5000, position: 'top-center' }
+                        )
+                    }
+                }
+            } catch (err) {
+                console.error('Error loading notifications:', err)
+            }
+        }
+        loadUnread()
+
+        const channel = subscribeToNotifications(user.id, (newNotif) => {
+            console.log('🔔 [REALTIME] Received new notification:', newNotif)
+            if (mounted) {
+                setUnreadCount(prev => prev + 1)
+                toast(
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-brand-400/20 flex items-center justify-center shrink-0">
+                            <Bell size={16} className="text-brand-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-text-primary truncate">{isRTL ? newNotif.title_ar : newNotif.title}</p>
+                            <p className="text-xs text-text-secondary line-clamp-1">{isRTL ? newNotif.message_ar : newNotif.message}</p>
+                        </div>
+                    </div>,
+                    { duration: 5000, position: 'top-center' }
+                )
+            }
+        })
+
+        return () => {
+            mounted = false
+            if (channel) channel.unsubscribe()
+        }
+    }, [user, isRTL])
 
     const toggleLanguage = () => {
         const newLang = i18n.language === 'en' ? 'ar' : 'en'
@@ -81,7 +136,7 @@ export default function Header({ onMenuToggle, isSidebarOpen }) {
                                 aria-label="Notifications"
                             >
                                 <Bell size={20} />
-                                <span className="absolute top-1 right-1 w-2 h-2 bg-brand-400 rounded-full" />
+                                {unreadCount > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-brand-400 rounded-full" />}
                             </button>
 
                             {/* User Menu */}
