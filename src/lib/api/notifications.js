@@ -44,12 +44,19 @@ export async function markAllAsRead(userId) {
 }
 
 export async function deleteNotification(id) {
+    console.log('[notifications] deleteNotification requested', { id })
+
     const { error } = await supabase
         .from('notifications')
         .delete()
         .eq('id', id)
 
-    if (error) throw error
+    if (error) {
+        console.error('[notifications] deleteNotification failed', { id, error })
+        throw error
+    }
+
+    console.log('[notifications] deleteNotification resolved', { id })
 }
 
 export async function clearAllNotifications(userId) {

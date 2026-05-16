@@ -4,23 +4,20 @@ import { motion } from 'framer-motion'
 import { toast } from 'react-hot-toast'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
-import { Settings, User, Bell, Palette, Shield, Save, Camera, Globe, Moon, Sun } from 'lucide-react'
+import { Settings, User, Palette, Save, Camera, Globe, Moon, Sun } from 'lucide-react'
 
-const TABS = ['profile', 'notifications', 'appearance', 'security']
-const TAB_ICONS = { profile: User, notifications: Bell, appearance: Palette, security: Shield }
+const TABS = ['profile', 'appearance']
+const TAB_ICONS = { profile: User, appearance: Palette }
 
 export default function SettingsPage() {
     const { t, i18n } = useTranslation()
-    const isRTL = i18n.language === 'ar'
     const { profile, uploadAvatar } = useAuth()
     const { theme, setTheme } = useTheme()
     const [activeTab, setActiveTab] = useState('profile')
     const [isUploading, setIsUploading] = useState(false)
     const [form, setForm] = useState({
         fullName: profile?.full_name || '', email: profile?.email || '', studentId: profile?.student_id || '',
-        emailNotifs: true, eventReminders: true, clubUpdates: true, systemNotifs: false,
         language: i18n.language,
-        currentPassword: '', newPassword: '', confirmPassword: '',
     })
     const [saved, setSaved] = useState(false)
 
@@ -57,30 +54,24 @@ export default function SettingsPage() {
         }
     }
 
-    const Toggle = ({ checked, onChange }) => (
-        <button onClick={() => onChange(!checked)} className={`relative w-11 h-6 rounded-full transition-colors ${checked ? 'bg-brand-400' : 'bg-surface-border'}`}>
-            <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${checked ? 'start-[22px]' : 'start-0.5'}`} />
-        </button>
-    )
-
     return (
-        <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6">
+        <div className="w-full max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6">
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
                 <h1 className="text-2xl md:text-3xl font-bold text-text-primary flex items-center gap-2">
                     <Settings size={28} className="text-brand-400" /> {t('settings.title')}
                 </h1>
             </motion.div>
 
-            <div className="flex flex-col md:flex-row gap-6">
+            <div className="flex flex-col md:flex-row gap-6 min-w-0">
                 {/* Tabs */}
-                <div className="md:w-56 shrink-0">
+                <div className="w-full md:w-56 md:shrink-0 min-w-0">
                     <div className="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible pb-2 md:pb-0">
                         {TABS.map(tab => {
                             const Icon = TAB_ICONS[tab]
                             return (
                                 <button key={tab} onClick={() => setActiveTab(tab)} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${activeTab === tab ? 'gradient-bg text-white' : 'text-text-secondary hover:text-text-primary hover:bg-white/5'}`}>
                                     <Icon size={16} />
-                                    {t(`settings.${tab === 'notifications' ? 'preferences' : tab}.title`)}
+                                    {t(`settings.${tab}.title`)}
                                 </button>
                             )
                         })}
@@ -88,7 +79,7 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Content */}
-                <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex-1 bg-surface-card border border-surface-border rounded-2xl p-6">
+                <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex-1 min-w-0 bg-surface-card border border-surface-border rounded-2xl p-6">
                     {activeTab === 'profile' && (
                         <div className="space-y-5">
                             <div className="flex items-center gap-4 mb-6">
@@ -142,22 +133,6 @@ export default function SettingsPage() {
                         </div>
                     )}
 
-                    {activeTab === 'notifications' && (
-                        <div className="space-y-4">
-                            {[
-                                { key: 'emailNotifs', label: t('settings.preferences.emailNotifs') },
-                                { key: 'eventReminders', label: 'Event Reminders' },
-                                { key: 'clubUpdates', label: 'Club Updates' },
-                                { key: 'systemNotifs', label: t('settings.preferences.inAppNotifs') },
-                            ].map(item => (
-                                <div key={item.key} className="flex items-center justify-between py-3 border-b border-surface-border last:border-0">
-                                    <span className="text-sm text-text-primary">{item.label}</span>
-                                    <Toggle checked={form[item.key]} onChange={v => setForm({ ...form, [item.key]: v })} />
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
                     {activeTab === 'appearance' && (
                         <div className="space-y-6">
                             <div>
@@ -179,23 +154,6 @@ export default function SettingsPage() {
                                         </button>
                                     ))}
                                 </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === 'security' && (
-                        <div className="space-y-5">
-                            <div>
-                                <label className="text-sm text-text-secondary mb-1 block">{t('settings.security.currentPassword')}</label>
-                                <input type="password" value={form.currentPassword} onChange={e => setForm({ ...form, currentPassword: e.target.value })} className="w-full px-4 py-2.5 bg-surface-darker border border-surface-border rounded-xl text-text-primary text-sm" />
-                            </div>
-                            <div>
-                                <label className="text-sm text-text-secondary mb-1 block">{t('settings.security.newPassword')}</label>
-                                <input type="password" value={form.newPassword} onChange={e => setForm({ ...form, newPassword: e.target.value })} className="w-full px-4 py-2.5 bg-surface-darker border border-surface-border rounded-xl text-text-primary text-sm" />
-                            </div>
-                            <div>
-                                <label className="text-sm text-text-secondary mb-1 block">{t('settings.security.confirmPassword')}</label>
-                                <input type="password" value={form.confirmPassword} onChange={e => setForm({ ...form, confirmPassword: e.target.value })} className="w-full px-4 py-2.5 bg-surface-darker border border-surface-border rounded-xl text-text-primary text-sm" />
                             </div>
                         </div>
                     )}

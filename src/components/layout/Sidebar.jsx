@@ -37,8 +37,9 @@ const adminLinks = [
 ]
 
 export default function Sidebar({ isOpen, onClose }) {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const { profile } = useAuth()
+    const isRTL = i18n.language === 'ar'
 
     const getLinks = () => {
         switch (profile?.role) {
@@ -69,7 +70,7 @@ export default function Sidebar({ isOpen, onClose }) {
                     'fixed top-16 bottom-0 start-0 z-30 w-64 bg-surface-darker border-e border-surface-border',
                     'transition-transform duration-300 ease-in-out',
                     'md:translate-x-0',
-                    isOpen ? 'translate-x-0' : '-translate-x-full [dir=rtl]:translate-x-full',
+                    isOpen ? 'translate-x-0' : isRTL ? 'translate-x-full' : '-translate-x-full',
                 )}
             >
                 <nav className="p-4 space-y-1 overflow-y-auto h-full">

@@ -55,6 +55,11 @@ export const getCategoryIcon = (category) => {
         sports: '⚽',
         cultural: '🎭',
         community: '🤝',
+        arts: '🎨',
+        technology: '🎮',
+        health: '💪',
+        volunteer: '🌍',
+        career: '💼',
     }
     return icons[category] || '📌'
 }

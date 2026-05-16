@@ -2,6 +2,76 @@ import { supabase } from '../supabase'
 
 // ===== EVENTS API =====
 
+const LANDING_CACHE_TTL = 30000
+
+let landingStatsCache = null
+const upcomingEventsCache = new Map()
+
+export async function getLandingStats() {
+    if (
+        landingStatsCache &&
+        landingStatsCache.expiresAt > Date.now()
+    ) {
+        return landingStatsCache.data
+    }
+
+    const [eventsRes, clubsRes, usersRes] = await Promise.all([
+        supabase
+            .from('events')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'published'),
+        supabase
+            .from('clubs')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'approved'),
+        supabase
+            .from('profiles')
+            .select('*', { count: 'exact', head: true }),
+    ])
+
+    if (eventsRes.error) throw eventsRes.error
+    if (clubsRes.error) throw clubsRes.error
+    if (usersRes.error) throw usersRes.error
+
+    const data = {
+        totalEvents: eventsRes.count || 0,
+        totalClubs: clubsRes.count || 0,
+        activeUsers: usersRes.count || 0,
+    }
+
+    landingStatsCache = {
+        data,
+        expiresAt: Date.now() + LANDING_CACHE_TTL,
+    }
+
+    return data
+}
+
+export async function getUpcomingEvents(limit = 4) {
+    const cached = upcomingEventsCache.get(limit)
+    if (cached && cached.expiresAt > Date.now()) {
+        return cached.data
+    }
+
+    const { data, error } = await supabase
+        .from('events')
+        .select('*, club:clubs(id, name, name_ar, category)')
+        .eq('status', 'published')
+        .order('is_featured', { ascending: false })
+        .order('date', { ascending: true })
+        .limit(limit)
+
+    if (error) throw error
+
+    const events = data || []
+    upcomingEventsCache.set(limit, {
+        data: events,
+        expiresAt: Date.now() + LANDING_CACHE_TTL,
+    })
+
+    return events
+}
+
 export async function getEvents(filters = {}) {
     let query = supabase
         .from('events')

@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS clubs (
     name_ar TEXT,
     description TEXT,
     description_ar TEXT,
-    category TEXT NOT NULL CHECK (category IN ('academic', 'sports', 'cultural', 'community')),
+    category TEXT NOT NULL CHECK (category IN ('academic', 'sports', 'cultural', 'community', 'arts', 'technology', 'health', 'volunteer', 'career')),
     logo_url TEXT,
     cover_url TEXT,
     admin_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS events (
     end_date TIMESTAMPTZ,
     location TEXT,
     location_ar TEXT,
-    category TEXT NOT NULL CHECK (category IN ('academic', 'sports', 'cultural', 'community')),
+    category TEXT NOT NULL CHECK (category IN ('academic', 'sports', 'cultural', 'community', 'arts', 'technology', 'health', 'volunteer', 'career')),
     max_capacity INTEGER DEFAULT 100,
     registered_count INTEGER DEFAULT 0,
     cover_url TEXT,
@@ -436,6 +436,9 @@ CREATE POLICY "Users can view their notifications"
 
 CREATE POLICY "Users can update their notifications"
     ON notifications FOR UPDATE USING (user_id = auth.uid());
+
+CREATE POLICY "Users can delete own notifications"
+    ON notifications FOR DELETE USING (auth.uid() = user_id);
 
 -- EVENT COMMENTS
 ALTER TABLE event_comments ENABLE ROW LEVEL SECURITY;

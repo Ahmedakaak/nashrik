@@ -25,7 +25,7 @@ export default function NotificationsPage() {
 
     useEffect(() => {
         if (!user) return
-        
+
         async function load() {
             try {
                 const data = await getNotifications(user.id)
@@ -36,7 +36,7 @@ export default function NotificationsPage() {
                 setLoading(false)
             }
         }
-        
+
         load()
 
         // Subscribe to real-time notifications
@@ -105,9 +105,9 @@ export default function NotificationsPage() {
     if (loading) return <PageLoader />
 
     return (
-        <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6">
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
-                <div>
+        <div className="w-full max-w-3xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6">
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0">
                     <h1 className="text-2xl md:text-3xl font-bold text-text-primary flex items-center gap-2">
                         <Bell size={28} className="text-brand-400" /> {t('notifications.title')}
                     </h1>
@@ -121,7 +121,7 @@ export default function NotificationsPage() {
             </motion.div>
 
             {/* Filters */}
-            <div className="flex gap-2 overflow-x-auto pb-1">
+            <div className="flex gap-2 overflow-x-auto pb-1 max-w-full">
                 {filters.map(f => (
                     <button key={f.key} onClick={() => setFilter(f.key)} className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors cursor-pointer ${filter === f.key ? 'gradient-bg text-white' : 'bg-surface-card border border-surface-border text-text-secondary hover:text-text-primary'}`}>
                         {f.label}

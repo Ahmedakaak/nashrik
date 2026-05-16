@@ -19,15 +19,29 @@
     },
     "landing": {
         "hero": {
-            "title": "Discover Campus Life",
+            "title": "Discover [[Campus Life]]",
             "subtitle": "Join events, connect with clubs, and never miss what's happening at UTAS Salalah",
             "cta": "Get Started",
             "ctaSecondary": "Explore Events"
         },
+        "liveDataUnavailable": "Live data is temporarily unavailable.",
         "stats": {
             "events": "Events Hosted",
             "clubs": "Active Clubs",
-            "students": "Students Connected"
+            "students": "Active Users"
+        },
+        "upcoming": {
+            "intro": "See what is happening next on campus and jump straight into the events that are filling up.",
+            "date": "Date",
+            "time": "Time",
+            "location": "Location",
+            "viewDetails": "View event details",
+            "moreSoon": "More events will appear here as clubs publish them.",
+            "browseMore": "Browse the full events directory to explore everything currently available.",
+            "loading": "Fetching the latest published events from Supabase.",
+            "empty": "No upcoming published events are available right now. You can still browse the full events page.",
+            "spotsLeft": "{{count}} left",
+            "slide": "Slide {{current}} of {{total}}"
         },
         "features": {
             "title": "Everything You Need",

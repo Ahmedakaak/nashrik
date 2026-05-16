@@ -5,6 +5,13 @@ import LanguageDetector from 'i18next-browser-languagedetector'
 import en from '../locales/en.json'
 import ar from '../locales/ar.json'
 
+const syncDocumentDirection = (language) => {
+    const normalizedLanguage = language?.split('-')[0]
+
+    document.documentElement.dir = normalizedLanguage === 'ar' ? 'rtl' : 'ltr'
+    document.documentElement.lang = normalizedLanguage || 'en'
+}
+
 i18n
     .use(LanguageDetector)
     .use(initReactI18next)
@@ -22,5 +29,8 @@ i18n
             caches: ['localStorage'],
         },
     })
+
+syncDocumentDirection(i18n.language)
+i18n.on('languageChanged', syncDocumentDirection)
 
 export default i18n
