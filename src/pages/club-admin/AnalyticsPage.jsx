@@ -27,7 +27,7 @@ export default function AnalyticsPage() {
         async function load() {
             try {
                 const c = await getClubByAdminId(user.id)
-                if (c) {
+                if (c?.status === 'approved') {
                     const [evts, membs] = await Promise.all([getEventsByClub(c.id), getClubMembers(c.id)])
                     const regs = await getAttendanceForEvents(evts.map(event => event.id))
                     setEvents(evts); setMembers(membs); setRegistrations(regs)

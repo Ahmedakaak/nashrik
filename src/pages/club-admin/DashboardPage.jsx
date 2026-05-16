@@ -9,7 +9,7 @@ import { getEventsByClub } from '../../lib/api/events'
 import { getClubMembers } from '../../lib/api/memberships'
 import { getClubAnnouncements } from '../../lib/api/announcements'
 import { PageLoader } from '../../components/common/LoadingSpinner'
-import { Users, Calendar, TrendingUp, BarChart3, ArrowRight, Plus, QrCode, Megaphone, Clock, UserPlus, AlertCircle } from 'lucide-react'
+import { Users, Calendar, TrendingUp, BarChart3, ArrowRight, Plus, QrCode, Megaphone, Clock, UserPlus, AlertCircle, XCircle } from 'lucide-react'
 
 export default function DashboardPage() {
     const { t, i18n } = useTranslation()
@@ -58,6 +58,19 @@ export default function DashboardPage() {
             </div>
             <h2 className="text-xl font-bold text-text-primary mb-2">{t('clubAdmin.apply.pendingTitle') || 'Application Pending'}</h2>
             <p className="text-text-secondary max-w-md mx-auto">{t('clubAdmin.apply.pendingDesc') || 'Your club application is currently under review by the system administrators. You will be notified once it is approved.'}</p>
+        </div>
+    )
+
+    if (club.status === 'rejected') return (
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-16 text-center">
+            <div className="w-16 h-16 bg-status-error/10 text-status-error rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <XCircle size={32} />
+            </div>
+            <span className="inline-flex items-center px-3 py-1 rounded-full bg-status-error/15 text-status-error text-xs font-medium mb-4">
+                Rejected
+            </span>
+            <h2 className="text-xl font-bold text-text-primary mb-2">Application Rejected</h2>
+            <p className="text-text-secondary max-w-md mx-auto">Your club application was rejected by a system administrator. This club is not active and cannot be managed.</p>
         </div>
     )
 

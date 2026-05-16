@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { categoryColors, categoryIcons } from '../../lib/constants'
 import { getClubs, updateClub, deleteClub } from '../../lib/api/clubs'
-import { getPendingClubs } from '../../lib/api/admin'
+import { getPendingClubs, rejectClub } from '../../lib/api/admin'
 import { PageLoader } from '../../components/common/LoadingSpinner'
 import toast from 'react-hot-toast'
 import { BookOpen, Check, X, Trash2, Users, Calendar, AlertCircle } from 'lucide-react'
@@ -31,7 +31,7 @@ export default function ClubApprovalPage() {
         catch (err) { toast.error(err.message) }
     }
     const handleReject = async (id) => {
-        try { await updateClub(id, { status: 'rejected' }); setPending(prev => prev.filter(c => c.id !== id)); toast.success('Club rejected.') }
+        try { await rejectClub(id); setPending(prev => prev.filter(c => c.id !== id)); toast.success('Club rejected.') }
         catch (err) { toast.error(err.message) }
     }
     const handleDelete = async (id) => {

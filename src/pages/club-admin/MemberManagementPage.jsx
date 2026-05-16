@@ -23,7 +23,7 @@ export default function MemberManagementPage() {
         async function load() {
             try {
                 const c = await getClubByAdminId(user.id)
-                if (c) setMembers(await getClubMembers(c.id))
+                if (c?.status === 'approved') setMembers(await getClubMembers(c.id))
             } catch (err) { console.error(err) }
             finally { setLoading(false) }
         }

@@ -28,7 +28,7 @@ export default function QRScannerPage() {
         async function load() {
             try {
                 const c = await getClubByAdminId(user.id)
-                if (c) {
+                if (c?.status === 'approved') {
                     const events = await getEventsByClub(c.id)
                     setClubEvents(events)
                     if (events.length > 0) { 

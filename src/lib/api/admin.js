@@ -52,6 +52,15 @@ export async function getPendingClubs() {
     return data || []
 }
 
+export async function rejectClub(clubId) {
+    const { error } = await supabase
+        .from('clubs')
+        .update({ status: 'rejected' })
+        .eq('id', clubId)
+
+    if (error) throw error
+}
+
 // ===== PLATFORM STATS (aggregations) =====
 
 export async function getPlatformStats() {

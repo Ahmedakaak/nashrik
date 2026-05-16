@@ -28,7 +28,7 @@ export default function AnnouncementsPage() {
         async function load() {
             try {
                 const c = await getClubByAdminId(user.id)
-                if (c) { setClub(c); setAnnouncements(await getClubAnnouncements(c.id)) }
+                if (c?.status === 'approved') { setClub(c); setAnnouncements(await getClubAnnouncements(c.id)) }
             } catch (err) { console.error(err) }
             finally { setLoading(false) }
         }
