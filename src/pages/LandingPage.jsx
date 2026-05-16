@@ -517,59 +517,6 @@ export default function LandingPage() {
                                 )}
                             </div>
 
-                            {upcomingEvents.length > 1 && (
-                                <div className="flex flex-wrap items-center justify-between gap-4 mt-5">
-                                    <div className="flex items-center gap-2">
-                                        {upcomingEvents.map((event, index) => (
-                                            <button
-                                                key={event.id}
-                                                type="button"
-                                                onClick={() => jumpToSlide(index)}
-                                                className={`h-2.5 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-dark ${
-                                                    index === activeSlide
-                                                        ? 'w-10 bg-brand-400'
-                                                        : 'w-2.5 bg-surface-border hover:bg-white/30'
-                                                }`}
-                                                aria-label={t('landing.upcoming.slide', { current: index + 1, total: upcomingEvents.length })}
-                                            />
-                                        ))}
-                                    </div>
-
-                                    <div className="grid sm:grid-cols-3 gap-3 flex-1">
-                                        {upcomingEvents.map((event, index) => {
-                                            const spotsLeft = event.max_capacity
-                                                ? Math.max(event.max_capacity - (event.registered_count || 0), 0)
-                                                : 0
-
-                                            return (
-                                                <button
-                                                    key={event.id}
-                                                    type="button"
-                                                    onClick={() => jumpToSlide(index)}
-                                                    className={`text-left rounded-2xl border px-4 py-3 transition-all ${
-                                                        index === activeSlide
-                                                            ? 'bg-brand-400/10 border-brand-400/30'
-                                                            : 'bg-surface-card border-surface-border hover:border-brand-400/20'
-                                                    }`}
-                                                >
-                                                    <p className="text-xs text-brand-400 mb-1">{formatDate(event.date)}</p>
-                                                    <p className="text-sm font-medium text-text-primary line-clamp-1">
-                                                        {isRTL ? event.title_ar : event.title}
-                                                    </p>
-                                                    <p className="text-xs text-text-muted mt-1 line-clamp-1">
-                                                        {isRTL ? event.club?.name_ar : event.club?.name}
-                                                    </p>
-                                                    {event.max_capacity && (
-                                                        <p className="text-xs text-text-secondary mt-2">
-                                                            {spotsLeft > 0 ? t('landing.upcoming.spotsLeft', { count: spotsLeft }) : t('events.full')}
-                                                        </p>
-                                                    )}
-                                                </button>
-                                            )
-                                        })}
-                                    </div>
-                                </div>
-                            )}
                         </motion.div>
                     ) : (
                         <motion.div

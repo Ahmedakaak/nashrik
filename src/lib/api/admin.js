@@ -92,6 +92,44 @@ export async function getUsersByRole() {
     ]
 }
 
+export async function getActivityTimeline() {
+    const days = Array.from({ length: 30 }, (_, index) => {
+        const date = new Date()
+        date.setDate(date.getDate() - (29 - index))
+        return date.toISOString().slice(0, 10)
+    })
+    const since = `${days[0]}T00:00:00.000Z`
+    const timeline = days.reduce((acc, date) => {
+        acc[date] = { date, users: 0, registrations: 0, memberships: 0 }
+        return acc
+    }, {})
+
+    const [usersRes, registrationsRes, membershipsRes] = await Promise.all([
+        supabase.from('profiles').select('created_at').gte('created_at', since),
+        supabase.from('event_registrations').select('created_at').gte('created_at', since),
+        supabase.from('club_memberships').select('created_at').gte('created_at', since),
+    ])
+
+    if (usersRes.error) throw usersRes.error
+    if (registrationsRes.error) throw registrationsRes.error
+    if (membershipsRes.error) throw membershipsRes.error
+
+    ;(usersRes.data || []).forEach(item => {
+        const date = item.created_at?.slice(0, 10)
+        if (timeline[date]) timeline[date].users += 1
+    })
+    ;(registrationsRes.data || []).forEach(item => {
+        const date = item.created_at?.slice(0, 10)
+        if (timeline[date]) timeline[date].registrations += 1
+    })
+    ;(membershipsRes.data || []).forEach(item => {
+        const date = item.created_at?.slice(0, 10)
+        if (timeline[date]) timeline[date].memberships += 1
+    })
+
+    return days.map(date => timeline[date])
+}
+
 export async function getRecentUsers(limit = 5) {
     const { data, error } = await supabase
         .from('profiles')

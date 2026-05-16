@@ -106,14 +106,13 @@ export default function AdminDashboardPage() {
                             </div>
                         </motion.section>
                     )}
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="bg-surface-card border border-surface-border rounded-2xl p-5">
+                        <h3 className="font-semibold text-text-primary mb-4">Users by Role</h3>
+                        <ResponsiveContainer width="100%" height={300}><RePieChart><Pie data={usersByRole} cx="50%" cy="50%" innerRadius={50} outerRadius={75} dataKey="count" nameKey={isRTL ? 'role_ar' : 'role'} paddingAngle={4}>{usersByRole.map((_, i) => <Cell key={i} fill={ROLE_COLORS[i % ROLE_COLORS.length]} />)}</Pie><Tooltip content={<CustomTooltip />} /><Legend formatter={(v) => <span className="text-text-secondary text-sm">{v}</span>} /></RePieChart></ResponsiveContainer>
+                    </motion.div>
                 </div>
 
                 <div className="space-y-6">
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="bg-surface-card border border-surface-border rounded-2xl p-5">
-                        <h3 className="font-semibold text-text-primary mb-4">Users by Role</h3>
-                        <ResponsiveContainer width="100%" height={200}><RePieChart><Pie data={usersByRole} cx="50%" cy="50%" innerRadius={50} outerRadius={75} dataKey="count" nameKey={isRTL ? 'role_ar' : 'role'} paddingAngle={4}>{usersByRole.map((_, i) => <Cell key={i} fill={ROLE_COLORS[i % ROLE_COLORS.length]} />)}</Pie><Tooltip content={<CustomTooltip />} /><Legend formatter={(v) => <span className="text-text-secondary text-sm">{v}</span>} /></RePieChart></ResponsiveContainer>
-                    </motion.div>
-
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="bg-surface-card border border-surface-border rounded-2xl p-5">
                         <h3 className="font-semibold text-text-primary mb-4">Quick Links</h3>
                         <div className="space-y-2">{quickLinks.map((link, i) => (<Link key={i} to={link.to} className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 text-text-secondary hover:text-text-primary transition-colors group"><link.icon size={18} className="text-brand-400" /><span className="text-sm font-medium">{link.label}</span><ArrowRight size={14} className="ms-auto text-text-muted group-hover:text-brand-400 transition-colors icon-flip" /></Link>))}</div>
