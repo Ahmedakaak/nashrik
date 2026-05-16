@@ -58,7 +58,10 @@ export default function MyClubsPage() {
                                 <Link to={`/clubs/${club.id}`} className="block bg-surface-card border border-surface-border rounded-2xl overflow-hidden hover:border-brand-400/30 transition-all duration-200 group hover-lift h-full flex flex-col">
                                     <div className={`h-32 relative ${colors.bg}`}>
                                         <div className="absolute inset-0 flex items-center justify-center">
-                                            <span className="text-5xl opacity-50">{categoryIcons[club.category]}</span>
+                                            {(() => {
+                                                const CategoryIcon = categoryIcons[club.category] || categoryIcons.academic
+                                                return <CategoryIcon size={40} className="opacity-50" />
+                                            })()}
                                         </div>
                                         <div className="absolute top-3 start-3">
                                             <span className={`text-xs px-2.5 py-1 rounded-lg font-medium backdrop-blur-sm ${colors.bg} ${colors.text} border ${colors.border}`}>
@@ -81,7 +84,10 @@ export default function MyClubsPage() {
                                     <div className="p-5 flex-1 flex flex-col">
                                         <div className="-mt-10 mb-3 relative z-10">
                                             <div className="w-14 h-14 rounded-2xl bg-surface-dark border-2 border-surface-card flex items-center justify-center text-2xl shadow-lg overflow-hidden">
-                                                {club.logo_url ? <img src={club.logo_url} alt="" className="w-full h-full object-cover" /> : categoryIcons[club.category]}
+                                                {club.logo_url ? <img src={club.logo_url} alt="" className="w-full h-full object-cover" /> : (() => {
+                                                    const CategoryIcon = categoryIcons[club.category] || categoryIcons.academic
+                                                    return <CategoryIcon size={24} />
+                                                })()}
                                             </div>
                                         </div>
                                         <h3 className="font-semibold text-lg text-text-primary group-hover:text-brand-400 transition-colors">

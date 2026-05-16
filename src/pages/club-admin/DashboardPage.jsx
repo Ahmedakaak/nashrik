@@ -124,7 +124,12 @@ export default function DashboardPage() {
                                 {upcomingEvents.map(event => (
                                     <div key={event.id} className="bg-surface-card border border-surface-border rounded-2xl p-4 hover:border-brand-400/30 transition-all">
                                         <div className="flex items-start gap-4">
-                                            <div className="shrink-0 w-12 h-12 rounded-xl bg-brand-400/10 flex items-center justify-center text-lg">{categoryIcons[event.category]}</div>
+                                            <div className="shrink-0 w-12 h-12 rounded-xl bg-brand-400/10 flex items-center justify-center text-lg">
+                                                {(() => {
+                                                    const CategoryIcon = categoryIcons[event.category] || categoryIcons.academic
+                                                    return <CategoryIcon size={20} />
+                                                })()}
+                                            </div>
                                             <div className="flex-1 min-w-0">
                                                 <h3 className="font-semibold text-text-primary truncate">{isRTL ? event.title_ar : event.title}</h3>
                                                 <div className="flex items-center gap-3 mt-1 text-sm text-text-muted">

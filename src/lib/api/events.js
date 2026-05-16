@@ -2,10 +2,48 @@ import { supabase } from '../supabase'
 
 // ===== EVENTS API =====
 
+const EVENT_COVERS_BUCKET = 'event-covers'
+const COVER_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const MAX_COVER_IMAGE_SIZE = 5 * 1024 * 1024
 const LANDING_CACHE_TTL = 30000
 
 let landingStatsCache = null
 const upcomingEventsCache = new Map()
+
+function validateCoverImage(file) {
+    if (!file) throw new Error('Please select an image to upload.')
+    if (!COVER_IMAGE_TYPES.includes(file.type)) throw new Error('Cover image must be a JPG, PNG, or WebP file.')
+    if (file.size > MAX_COVER_IMAGE_SIZE) throw new Error('Cover image must be 5MB or smaller.')
+}
+
+function getFileExtension(file) {
+    const extension = file.name.split('.').pop()?.toLowerCase()
+    if (extension) return extension
+    if (file.type === 'image/png') return 'png'
+    if (file.type === 'image/webp') return 'webp'
+    return 'jpg'
+}
+
+export async function uploadEventCoverImage(file) {
+    validateCoverImage(file)
+
+    const filePath = `${crypto.randomUUID()}.${getFileExtension(file)}`
+    const { error } = await supabase.storage
+        .from(EVENT_COVERS_BUCKET)
+        .upload(filePath, file, {
+            cacheControl: '3600',
+            contentType: file.type,
+            upsert: false,
+        })
+
+    if (error) throw error
+
+    const { data } = supabase.storage
+        .from(EVENT_COVERS_BUCKET)
+        .getPublicUrl(filePath)
+
+    return data.publicUrl
+}
 
 export async function getLandingStats() {
     if (

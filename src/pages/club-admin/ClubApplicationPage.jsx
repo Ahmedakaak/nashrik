@@ -4,9 +4,12 @@ import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { toast } from 'react-hot-toast'
 import { useAuth } from '../../contexts/AuthContext'
-import { createClub } from '../../lib/api/clubs'
+import { createClub, uploadClubCoverImage } from '../../lib/api/clubs'
 import { CLUB_CATEGORIES } from '../../lib/constants'
-import { BookOpen, Send, ArrowLeft } from 'lucide-react'
+import { BookOpen, Send, ArrowLeft, ImagePlus } from 'lucide-react'
+
+const ALLOWED_COVER_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const MAX_COVER_SIZE = 5 * 1024 * 1024
 
 export default function ClubApplicationPage() {
     const { t, i18n } = useTranslation()
@@ -22,6 +25,29 @@ export default function ClubApplicationPage() {
         category: 'academic'
     })
     const [submitting, setSubmitting] = useState(false)
+    const [uploadingCover, setUploadingCover] = useState(false)
+    const [coverFile, setCoverFile] = useState(null)
+    const [coverPreview, setCoverPreview] = useState('')
+
+    const handleCoverChange = (event) => {
+        const file = event.target.files?.[0]
+        if (!file) return
+
+        if (!ALLOWED_COVER_TYPES.includes(file.type)) {
+            toast.error('Cover image must be a JPG, PNG, or WebP file.')
+            event.target.value = ''
+            return
+        }
+
+        if (file.size > MAX_COVER_SIZE) {
+            toast.error('Cover image must be 5MB or smaller.')
+            event.target.value = ''
+            return
+        }
+
+        setCoverFile(file)
+        setCoverPreview(URL.createObjectURL(file))
+    }
 
     const handleSubmit = async (e) => {
         e.preventDefault()
@@ -32,9 +58,13 @@ export default function ClubApplicationPage() {
         }
 
         setSubmitting(true)
+        setUploadingCover(!!coverFile)
         try {
+            const coverUrl = coverFile ? await uploadClubCoverImage(coverFile) : ''
+
             await createClub({
                 ...form,
+                cover_url: coverUrl,
                 admin_id: user.id,
                 status: 'pending'
             })
@@ -46,6 +76,7 @@ export default function ClubApplicationPage() {
             toast.error(error.message || t('common.error'))
         } finally {
             setSubmitting(false)
+            setUploadingCover(false)
         }
     }
 
@@ -160,14 +191,45 @@ export default function ClubApplicationPage() {
                     </div>
                 </div>
 
+                <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                        Cover Photo
+                    </label>
+                    <label className="relative flex min-h-44 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-surface-border bg-surface-darker text-text-secondary transition-colors hover:border-brand-400/40 hover:text-text-primary">
+                        {coverPreview ? (
+                            <img src={coverPreview} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                        ) : (
+                            <div className="flex flex-col items-center gap-2 text-sm">
+                                <ImagePlus size={24} />
+                                <span>Upload JPG, PNG, or WebP up to 5MB</span>
+                            </div>
+                        )}
+                        {coverPreview && <div className="absolute inset-0 bg-black/30" />}
+                        {coverPreview && (
+                            <span className="relative z-10 rounded-lg bg-black/50 px-3 py-1.5 text-sm font-medium text-white">
+                                Change cover photo
+                            </span>
+                        )}
+                        <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            onChange={handleCoverChange}
+                            className="sr-only"
+                        />
+                    </label>
+                </div>
+
                 <div className="pt-4 border-t border-surface-border flex justify-end">
                     <button
                         type="submit"
-                        disabled={submitting}
+                        disabled={submitting || uploadingCover}
                         className="inline-flex items-center gap-2 px-6 py-3 rounded-xl gradient-bg text-white font-medium hover:opacity-90 hover:shadow-lg hover:shadow-brand-400/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none"
                     >
-                        {submitting ? (
-                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        {submitting || uploadingCover ? (
+                            <>
+                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                {uploadingCover ? 'Uploading cover...' : 'Submitting...'}
+                            </>
                         ) : (
                             <>
                                 {t('clubAdmin.apply.submit')}

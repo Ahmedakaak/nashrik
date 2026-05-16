@@ -4,12 +4,14 @@ import { useAuth } from '../../contexts/AuthContext'
 import { motion, AnimatePresence } from 'framer-motion'
 import { categoryIcons, CLUB_CATEGORIES, EVENT_STATUSES } from '../../lib/constants'
 import { getClubByAdminId } from '../../lib/api/clubs'
-import { getEventsByClub, createEvent, updateEvent, deleteEvent } from '../../lib/api/events'
+import { getEventsByClub, createEvent, updateEvent, deleteEvent, uploadEventCoverImage } from '../../lib/api/events'
 import { PageLoader } from '../../components/common/LoadingSpinner'
 import toast from 'react-hot-toast'
-import { Plus, Search, Calendar, Users, MapPin, Clock, Edit3, Trash2, Eye, EyeOff, X, ChevronDown, AlertCircle } from 'lucide-react'
+import { Plus, Search, Calendar, Users, MapPin, Clock, Edit3, Trash2, Eye, EyeOff, X, ChevronDown, AlertCircle, ImagePlus } from 'lucide-react'
 
-const initialForm = { title: '', title_ar: '', description: '', description_ar: '', date: '', end_date: '', location: '', location_ar: '', category: 'academic', max_capacity: 40, status: 'draft' }
+const initialForm = { title: '', title_ar: '', description: '', description_ar: '', date: '', end_date: '', location: '', location_ar: '', category: 'academic', max_capacity: 40, status: 'draft', cover_url: '' }
+const ALLOWED_COVER_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const MAX_COVER_SIZE = 5 * 1024 * 1024
 
 export default function EventManagementPage() {
     const { t, i18n } = useTranslation()
@@ -24,6 +26,9 @@ export default function EventManagementPage() {
     const [editingEvent, setEditingEvent] = useState(null)
     const [form, setForm] = useState(initialForm)
     const [saving, setSaving] = useState(false)
+    const [uploadingCover, setUploadingCover] = useState(false)
+    const [coverFile, setCoverFile] = useState(null)
+    const [coverPreview, setCoverPreview] = useState('')
 
     useEffect(() => {
         if (!user) return
@@ -43,29 +48,62 @@ export default function EventManagementPage() {
         return matchSearch && matchStatus
     }), [events, search, statusFilter, isRTL])
 
-    const openCreate = () => { setEditingEvent(null); setForm(initialForm); setShowModal(true) }
+    const resetCoverInput = (previewUrl = '') => {
+        setCoverFile(null)
+        setCoverPreview(previewUrl)
+    }
+
+    const openCreate = () => { setEditingEvent(null); setForm(initialForm); resetCoverInput(''); setShowModal(true) }
     const openEdit = (event) => {
         setEditingEvent(event)
-        setForm({ title: event.title, title_ar: event.title_ar, description: event.description || '', description_ar: event.description_ar || '', date: event.date?.slice(0, 16) || '', end_date: event.end_date?.slice(0, 16) || '', location: event.location || '', location_ar: event.location_ar || '', category: event.category, max_capacity: event.max_capacity, status: event.status })
+        setForm({ title: event.title, title_ar: event.title_ar, description: event.description || '', description_ar: event.description_ar || '', date: event.date?.slice(0, 16) || '', end_date: event.end_date?.slice(0, 16) || '', location: event.location || '', location_ar: event.location_ar || '', category: event.category, max_capacity: event.max_capacity, status: event.status, cover_url: event.cover_url || '' })
+        resetCoverInput(event.cover_url || '')
         setShowModal(true)
+    }
+
+    const handleCoverChange = (event) => {
+        const file = event.target.files?.[0]
+        if (!file) return
+
+        if (!ALLOWED_COVER_TYPES.includes(file.type)) {
+            toast.error('Cover image must be a JPG, PNG, or WebP file.')
+            event.target.value = ''
+            return
+        }
+
+        if (file.size > MAX_COVER_SIZE) {
+            toast.error('Cover image must be 5MB or smaller.')
+            event.target.value = ''
+            return
+        }
+
+        setCoverFile(file)
+        setCoverPreview(URL.createObjectURL(file))
     }
 
     const handleSave = async () => {
         setSaving(true)
+        setUploadingCover(!!coverFile)
         try {
+            let coverUrl = form.cover_url
+            if (coverFile) {
+                coverUrl = await uploadEventCoverImage(coverFile)
+            }
+
+            const payload = { ...form, cover_url: coverUrl }
             if (editingEvent) {
-                const updated = await updateEvent(editingEvent.id, form)
+                const updated = await updateEvent(editingEvent.id, payload)
                 setEvents(prev => prev.map(e => e.id === editingEvent.id ? updated : e))
                 toast.success('Event updated!')
             } else {
                 if (!club) throw new Error('No club assigned to your account.')
-                const created = await createEvent({ ...form, club_id: club.id })
+                const created = await createEvent({ ...payload, club_id: club.id })
                 setEvents(prev => [created, ...prev])
                 toast.success('Event created!')
             }
             setShowModal(false)
         } catch (err) { toast.error(err.message || 'Failed to save') }
-        finally { setSaving(false) }
+        finally { setSaving(false); setUploadingCover(false) }
     }
 
     const handleDelete = async (id) => {
@@ -120,7 +158,12 @@ export default function EventManagementPage() {
                     {filtered.map(event => (
                         <motion.div key={event.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="bg-surface-card border border-surface-border rounded-2xl p-4 hover:border-brand-400/20 transition-all">
                             <div className="flex items-start gap-4">
-                                <div className="shrink-0 w-12 h-12 rounded-xl bg-brand-400/10 flex items-center justify-center text-xl">{categoryIcons[event.category]}</div>
+                                <div className="shrink-0 w-12 h-12 rounded-xl bg-brand-400/10 flex items-center justify-center text-xl">
+                                    {(() => {
+                                        const CategoryIcon = categoryIcons[event.category] || categoryIcons.academic
+                                        return <CategoryIcon size={20} />
+                                    })()}
+                                </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-1"><h3 className="font-semibold text-text-primary truncate">{isRTL ? event.title_ar : event.title}</h3><span className={`text-xs px-2 py-0.5 rounded-lg font-medium shrink-0 ${statusColors[event.status] || statusColors.draft}`}>{event.status}</span></div>
                                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-muted">
@@ -151,11 +194,31 @@ export default function EventManagementPage() {
                                 <div className="grid sm:grid-cols-2 gap-4"><div><label className="text-sm text-text-secondary mb-1 block">Description (EN)</label><textarea rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="w-full px-3 py-2.5 bg-surface-darker border border-surface-border rounded-xl text-text-primary text-sm resize-none" /></div><div><label className="text-sm text-text-secondary mb-1 block">الوصف (AR)</label><textarea dir="rtl" rows={3} value={form.description_ar} onChange={e => setForm({ ...form, description_ar: e.target.value })} className="w-full px-3 py-2.5 bg-surface-darker border border-surface-border rounded-xl text-text-primary text-sm resize-none" /></div></div>
                                 <div className="grid sm:grid-cols-2 gap-4"><div><label className="text-sm text-text-secondary mb-1 block">Start Date & Time</label><input type="datetime-local" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="w-full px-3 py-2.5 bg-surface-darker border border-surface-border rounded-xl text-text-primary text-sm" /></div><div><label className="text-sm text-text-secondary mb-1 block">End Date & Time</label><input type="datetime-local" value={form.end_date} onChange={e => setForm({ ...form, end_date: e.target.value })} className="w-full px-3 py-2.5 bg-surface-darker border border-surface-border rounded-xl text-text-primary text-sm" /></div></div>
                                 <div className="grid sm:grid-cols-2 gap-4"><div><label className="text-sm text-text-secondary mb-1 block">Location (EN)</label><input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} className="w-full px-3 py-2.5 bg-surface-darker border border-surface-border rounded-xl text-text-primary text-sm" /></div><div><label className="text-sm text-text-secondary mb-1 block">الموقع (AR)</label><input dir="rtl" value={form.location_ar} onChange={e => setForm({ ...form, location_ar: e.target.value })} className="w-full px-3 py-2.5 bg-surface-darker border border-surface-border rounded-xl text-text-primary text-sm" /></div></div>
-                                <div className="grid sm:grid-cols-2 gap-4"><div><label className="text-sm text-text-secondary mb-1 block">Category</label><select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="w-full px-3 py-2.5 bg-surface-darker border border-surface-border rounded-xl text-text-primary text-sm">{CLUB_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.icon} {isRTL ? c.labelAr : c.label}</option>)}</select></div><div><label className="text-sm text-text-secondary mb-1 block">Max Capacity</label><input type="number" min={1} value={form.max_capacity} onChange={e => setForm({ ...form, max_capacity: parseInt(e.target.value) || 0 })} className="w-full px-3 py-2.5 bg-surface-darker border border-surface-border rounded-xl text-text-primary text-sm" /></div></div>
+                                <div className="grid sm:grid-cols-2 gap-4"><div><label className="text-sm text-text-secondary mb-1 block">Category</label><select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="w-full px-3 py-2.5 bg-surface-darker border border-surface-border rounded-xl text-text-primary text-sm">{CLUB_CATEGORIES.map(c => <option key={c.value} value={c.value}>{isRTL ? c.labelAr : c.label}</option>)}</select></div><div><label className="text-sm text-text-secondary mb-1 block">Max Capacity</label><input type="number" min={1} value={form.max_capacity} onChange={e => setForm({ ...form, max_capacity: parseInt(e.target.value) || 0 })} className="w-full px-3 py-2.5 bg-surface-darker border border-surface-border rounded-xl text-text-primary text-sm" /></div></div>
+                                <div>
+                                    <label className="text-sm text-text-secondary mb-1 block">Cover Photo</label>
+                                    <label className="relative flex min-h-40 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-surface-border bg-surface-darker text-text-secondary transition-colors hover:border-brand-400/40 hover:text-text-primary">
+                                        {coverPreview ? (
+                                            <img src={coverPreview} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                                        ) : (
+                                            <div className="flex flex-col items-center gap-2 text-sm">
+                                                <ImagePlus size={24} />
+                                                <span>Upload JPG, PNG, or WebP up to 5MB</span>
+                                            </div>
+                                        )}
+                                        {coverPreview && <div className="absolute inset-0 bg-black/30" />}
+                                        {coverPreview && (
+                                            <span className="relative z-10 rounded-lg bg-black/50 px-3 py-1.5 text-sm font-medium text-white">
+                                                Change cover photo
+                                            </span>
+                                        )}
+                                        <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleCoverChange} className="sr-only" />
+                                    </label>
+                                </div>
                             </div>
                             <div className="flex justify-end gap-3 p-5 border-t border-surface-border">
                                 <button onClick={() => setShowModal(false)} className="px-5 py-2.5 rounded-xl border border-surface-border text-text-secondary hover:text-text-primary hover:bg-white/5 text-sm font-medium transition-colors cursor-pointer">{t('common.cancel')}</button>
-                                <button onClick={handleSave} disabled={saving} className="px-5 py-2.5 rounded-xl gradient-bg text-white text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50">{saving ? 'Saving...' : t('common.save')}</button>
+                                <button onClick={handleSave} disabled={saving || uploadingCover} className="px-5 py-2.5 rounded-xl gradient-bg text-white text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50">{uploadingCover ? 'Uploading cover...' : saving ? 'Saving...' : t('common.save')}</button>
                             </div>
                         </motion.div>
                     </motion.div>

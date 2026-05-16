@@ -1,3 +1,15 @@
+import {
+    BookOpen,
+    Briefcase,
+    Cpu,
+    Globe2,
+    HandshakeIcon,
+    HeartPulse,
+    Leaf,
+    Palette,
+    Trophy,
+} from 'lucide-react'
+
 export const ROLES = {
     STUDENT: 'student',
     CLUB_ADMIN: 'club_admin',
@@ -18,15 +30,15 @@ export const CLUB_STATUSES = {
 }
 
 export const CLUB_CATEGORIES = [
-    { value: 'academic', label: 'Academic', labelAr: 'أكاديمي', icon: '📚' },
-    { value: 'sports', label: 'Sports', labelAr: 'رياضي', icon: '⚽' },
-    { value: 'cultural', label: 'Cultural', labelAr: 'ثقافي', icon: '🎭' },
-    { value: 'community', label: 'Community', labelAr: 'مجتمعي', icon: '🤝' },
-    { value: 'arts', label: 'Arts & Creative', labelAr: 'الفنون والإبداع', icon: '🎨' },
-    { value: 'technology', label: 'Technology & Gaming', labelAr: 'التقنية والألعاب', icon: '🎮' },
-    { value: 'health', label: 'Health & Wellness', labelAr: 'الصحة واللياقة', icon: '💪' },
-    { value: 'volunteer', label: 'Volunteering & Social Impact', labelAr: 'التطوع والأثر الاجتماعي', icon: '🌍' },
-    { value: 'career', label: 'Career & Professional', labelAr: 'المسار المهني', icon: '💼' },
+    { value: 'academic', label: 'Academic', labelAr: 'أكاديمي', icon: BookOpen },
+    { value: 'sports', label: 'Sports', labelAr: 'رياضي', icon: Trophy },
+    { value: 'cultural', label: 'Cultural', labelAr: 'ثقافي', icon: Globe2 },
+    { value: 'community', label: 'Community', labelAr: 'مجتمعي', icon: HandshakeIcon },
+    { value: 'arts', label: 'Arts & Creative', labelAr: 'الفنون والإبداع', icon: Palette },
+    { value: 'technology', label: 'Technology & Gaming', labelAr: 'التقنية والألعاب', icon: Cpu },
+    { value: 'health', label: 'Health & Wellness', labelAr: 'الصحة واللياقة', icon: HeartPulse },
+    { value: 'volunteer', label: 'Volunteering & Social Impact', labelAr: 'التطوع والأثر الاجتماعي', icon: Leaf },
+    { value: 'career', label: 'Career & Professional', labelAr: 'المسار المهني', icon: Briefcase },
 ]
 
 export const MEMBER_STATUSES = {
@@ -60,14 +72,6 @@ export const categoryColors = {
     career: { bg: 'bg-amber-500/15', text: 'text-amber-400', border: 'border-amber-500/30' },
 }
 
-export const categoryIcons = {
-    academic: '📚',
-    sports: '⚽',
-    cultural: '🎭',
-    community: '🤝',
-    arts: '🎨',
-    technology: '🎮',
-    health: '💪',
-    volunteer: '🌍',
-    career: '💼',
-}
+export const categoryIcons = Object.fromEntries(
+    CLUB_CATEGORIES.map(({ value, icon }) => [value, icon])
+)

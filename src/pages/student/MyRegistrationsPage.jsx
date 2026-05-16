@@ -154,7 +154,10 @@ export default function MyRegistrationsPage() {
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
                                             <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${colors.bg} ${colors.text}`}>
-                                                {categoryIcons[event.category]} {event.category}
+                                                {(() => {
+                                                    const CategoryIcon = categoryIcons[event.category] || categoryIcons.academic
+                                                    return <CategoryIcon size={12} />
+                                                })()} {event.category}
                                             </span>
                                             {reg.attended && (
                                                 <span className="text-xs px-2 py-0.5 rounded-md bg-brand-400/15 text-brand-400 font-medium">

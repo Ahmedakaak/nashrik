@@ -9,7 +9,7 @@ import { PageLoader } from '../../components/common/LoadingSpinner'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
     Search, Calendar, MapPin, Users, Clock, Filter,
-    SlidersHorizontal, X, ArrowRight, CheckCircle2
+    SlidersHorizontal, X, ArrowRight, CheckCircle2, Globe2
 } from 'lucide-react'
 
 export default function EventsPage() {
@@ -65,7 +65,7 @@ export default function EventsPage() {
     }
 
     const categories = [
-        { value: 'all', label: t('events.filters.all'), icon: '🌟' },
+        { value: 'all', label: t('events.filters.all'), icon: Globe2 },
         ...CLUB_CATEGORIES.map(c => ({
             value: c.value,
             label: isRTL ? c.labelAr : c.label,
@@ -156,7 +156,7 @@ export default function EventsPage() {
                                                 : 'bg-surface-card border-surface-border text-text-secondary hover:text-text-primary hover:border-brand-400/20'
                                             }`}
                                     >
-                                        <span>{cat.icon}</span>
+                            <cat.icon size={14} />
                                         {cat.label}
                                     </button>
                                 ))}
@@ -210,7 +210,10 @@ export default function EventsPage() {
                                             <img src={event.cover_url} alt="" className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="absolute inset-0 flex items-center justify-center">
-                                                <span className="text-5xl opacity-60">{categoryIcons[event.category]}</span>
+                                                {(() => {
+                                                    const CategoryIcon = categoryIcons[event.category] || categoryIcons.academic
+                                                    return <CategoryIcon size={40} className="opacity-60" />
+                                                })()}
                                             </div>
                                         )}
                                         {/* Tags */}

@@ -7,7 +7,7 @@ import { getClubs } from '../../lib/api/clubs'
 import { getMyMemberships } from '../../lib/api/memberships'
 import { PageLoader } from '../../components/common/LoadingSpinner'
 import { motion } from 'framer-motion'
-import { Search, Users, ArrowRight, X, CheckCircle2 } from 'lucide-react'
+import { Search, Users, ArrowRight, X, CheckCircle2, Globe2 } from 'lucide-react'
 
 export default function ClubsPage() {
     const { t, i18n } = useTranslation()
@@ -50,7 +50,7 @@ export default function ClubsPage() {
     }, [clubs, search, selectedCategory])
 
     const categories = [
-        { value: 'all', label: t('events.filters.all'), icon: '🌟' },
+        { value: 'all', label: t('events.filters.all'), icon: Globe2 },
         ...CLUB_CATEGORIES.map(c => ({
             value: c.value,
             label: isRTL ? c.labelAr : c.label,
@@ -111,7 +111,7 @@ export default function ClubsPage() {
                                     : 'bg-surface-card border-surface-border text-text-secondary hover:text-text-primary hover:border-brand-400/20'
                                 }`}
                         >
-                            <span>{cat.icon}</span>
+                            <cat.icon size={14} />
                             {cat.label}
                         </button>
                     ))}
@@ -150,7 +150,10 @@ export default function ClubsPage() {
                                             <img src={club.cover_url} alt="" className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="absolute inset-0 flex items-center justify-center">
-                                                <span className="text-5xl opacity-50">{categoryIcons[club.category]}</span>
+                                                {(() => {
+                                                    const CategoryIcon = categoryIcons[club.category] || categoryIcons.academic
+                                                    return <CategoryIcon size={40} className="opacity-50" />
+                                                })()}
                                             </div>
                                         )}
 
@@ -180,7 +183,10 @@ export default function ClubsPage() {
                                                 {club.logo_url ? (
                                                     <img src={club.logo_url} alt="" className="w-full h-full object-cover" />
                                                 ) : (
-                                                    categoryIcons[club.category]
+                                                    (() => {
+                                                        const CategoryIcon = categoryIcons[club.category] || categoryIcons.academic
+                                                        return <CategoryIcon size={24} />
+                                                    })()
                                                 )}
                                             </div>
                                         </div>

@@ -124,11 +124,17 @@ export default function ClubProfilePage() {
                     {club.cover_url ? (
                         <img src={club.cover_url} alt="" className="w-full h-full object-cover" />
                     ) : (
-                        <span className="text-7xl md:text-9xl opacity-20">{categoryIcons[club.category]}</span>
+                        (() => {
+                            const CategoryIcon = categoryIcons[club.category] || categoryIcons.academic
+                            return <CategoryIcon size={88} className="opacity-20" />
+                        })()
                     )}
                     <div className="absolute top-4 start-4">
                         <span className={`text-xs px-3 py-1.5 rounded-lg font-medium backdrop-blur-md ${colors.bg} ${colors.text} border ${colors.border}`}>
-                            {categoryIcons[club.category]} {isRTL ? CLUB_CATEGORIES.find(c => c.value === club.category)?.labelAr : club.category}
+                            {(() => {
+                                const CategoryIcon = categoryIcons[club.category] || categoryIcons.academic
+                                return <CategoryIcon size={12} />
+                            })()} {isRTL ? CLUB_CATEGORIES.find(c => c.value === club.category)?.labelAr : club.category}
                         </span>
                     </div>
                 </div>
@@ -148,7 +154,10 @@ export default function ClubProfilePage() {
                             {club.logo_url ? (
                                 <img src={club.logo_url} alt="" className="w-full h-full object-cover" />
                             ) : (
-                                categoryIcons[club.category]
+                                (() => {
+                                    const CategoryIcon = categoryIcons[club.category] || categoryIcons.academic
+                                    return <CategoryIcon size={28} />
+                                })()
                             )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -316,7 +325,10 @@ export default function ClubProfilePage() {
                             <div className="flex items-center justify-between">
                                 <span className="text-sm text-text-muted">Category</span>
                                 <span className={`text-sm font-medium ${colors.text}`}>
-                                    {categoryIcons[club.category]} {isRTL ? CLUB_CATEGORIES.find(c => c.value === club.category)?.labelAr : club.category}
+                                    {(() => {
+                                        const CategoryIcon = categoryIcons[club.category] || categoryIcons.academic
+                                        return <CategoryIcon size={12} />
+                                    })()} {isRTL ? CLUB_CATEGORIES.find(c => c.value === club.category)?.labelAr : club.category}
                                 </span>
                             </div>
                         </div>

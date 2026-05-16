@@ -186,7 +186,10 @@ export default function DashboardPage() {
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2 mb-1">
                                                         <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${colors.bg} ${colors.text}`}>
-                                                            {categoryIcons[event.category]} {event.category}
+                                                            {(() => {
+                                                                const CategoryIcon = categoryIcons[event.category] || categoryIcons.academic
+                                                                return <CategoryIcon size={12} />
+                                                            })()} {event.category}
                                                         </span>
                                                     </div>
                                                     <h3 className="font-semibold text-text-primary group-hover:text-brand-400 transition-colors truncate">
@@ -249,7 +252,10 @@ export default function DashboardPage() {
                                     >
                                         {/* Cover placeholder */}
                                         <div className={`h-28 ${colors.bg} flex items-center justify-center`}>
-                                            <span className="text-4xl">{categoryIcons[event.category]}</span>
+                                            {(() => {
+                                                const CategoryIcon = categoryIcons[event.category] || categoryIcons.academic
+                                                return <CategoryIcon size={32} />
+                                            })()}
                                         </div>
 
                                         <div className="p-4">
@@ -349,7 +355,10 @@ export default function DashboardPage() {
                                         className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors group"
                                     >
                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-400/20 to-brand-600/20 flex items-center justify-center text-lg border border-brand-400/20 shrink-0">
-                                            {categoryIcons[club.category]}
+                                            {(() => {
+                                                const CategoryIcon = categoryIcons[club.category] || categoryIcons.academic
+                                                return <CategoryIcon size={24} />
+                                            })()}
                                         </div>
                                         <div className="min-w-0 flex-1">
                                             <p className="text-sm font-medium text-text-primary truncate group-hover:text-brand-400 transition-colors">

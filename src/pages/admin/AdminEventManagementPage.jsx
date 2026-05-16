@@ -46,7 +46,7 @@ export default function AdminEventManagementPage() {
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}><h1 className="text-2xl md:text-3xl font-bold text-text-primary">{t('admin.events.title')}</h1><p className="text-text-secondary mt-1">{filtered.length} events across all clubs</p></motion.div>
             <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1"><Search size={18} className="absolute start-3 top-1/2 -translate-y-1/2 text-text-muted" /><input type="text" placeholder={t('events.search')} value={search} onChange={e => setSearch(e.target.value)} className="w-full ps-10 pe-4 py-2.5 bg-surface-card border border-surface-border rounded-xl text-text-primary placeholder:text-text-muted text-sm" /></div>
-                <div className="relative"><select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="appearance-none px-4 py-2.5 pe-10 bg-surface-card border border-surface-border rounded-xl text-text-primary text-sm cursor-pointer"><option value="all">All Categories</option>{CLUB_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.icon} {isRTL ? c.labelAr : c.label}</option>)}</select><ChevronDown size={16} className="absolute end-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" /></div>
+                <div className="relative"><select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="appearance-none px-4 py-2.5 pe-10 bg-surface-card border border-surface-border rounded-xl text-text-primary text-sm cursor-pointer"><option value="all">All Categories</option>{CLUB_CATEGORIES.map(c => <option key={c.value} value={c.value}>{isRTL ? c.labelAr : c.label}</option>)}</select><ChevronDown size={16} className="absolute end-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" /></div>
             </div>
             <motion.div layout className="space-y-3">
                 <AnimatePresence>
@@ -55,7 +55,12 @@ export default function AdminEventManagementPage() {
                         return (
                             <motion.div key={event.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="bg-surface-card border border-surface-border rounded-2xl p-4 hover:border-brand-400/20 transition-all">
                                 <div className="flex items-start gap-4">
-                                    <div className={`shrink-0 w-12 h-12 rounded-xl ${colors.bg} flex items-center justify-center text-xl`}>{categoryIcons[event.category]}</div>
+                                    <div className={`shrink-0 w-12 h-12 rounded-xl ${colors.bg} flex items-center justify-center text-xl`}>
+                                        {(() => {
+                                            const CategoryIcon = categoryIcons[event.category] || categoryIcons.academic
+                                            return <CategoryIcon size={20} />
+                                        })()}
+                                    </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1 flex-wrap"><h3 className="font-semibold text-text-primary truncate">{isRTL ? event.title_ar : event.title}</h3>{event.is_featured && <span className="text-xs bg-brand-400/15 text-brand-400 px-2 py-0.5 rounded-lg font-medium flex items-center gap-1"><Star size={10} className="fill-current" /> Featured</span>}<span className={`text-xs px-2 py-0.5 rounded-lg font-medium ${statusColors[event.status] || statusColors.draft}`}>{event.status}</span></div>
                                         <p className="text-xs text-text-muted mb-1">{isRTL ? event.club?.name_ar : event.club?.name}</p>

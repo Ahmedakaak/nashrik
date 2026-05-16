@@ -158,12 +158,18 @@ export default function EventDetailsPage() {
                         {event.cover_url ? (
                             <img src={event.cover_url} alt="" className="w-full h-full object-cover" />
                         ) : (
-                            <span className="text-7xl md:text-8xl opacity-40">{categoryIcons[event.category]}</span>
+                            (() => {
+                                const CategoryIcon = categoryIcons[event.category] || categoryIcons.academic
+                                return <CategoryIcon size={88} className="opacity-40" />
+                            })()
                         )}
                         {/* Tags overlay */}
                         <div className="absolute top-4 start-4 flex gap-2">
                             <span className={`text-xs px-3 py-1.5 rounded-lg font-medium backdrop-blur-md ${colors.bg} ${colors.text} border ${colors.border}`}>
-                                {categoryIcons[event.category]} {isRTL ? CLUB_CATEGORIES.find(c => c.value === event.category)?.labelAr : event.category}
+                                {(() => {
+                                    const CategoryIcon = categoryIcons[event.category] || categoryIcons.academic
+                                    return <CategoryIcon size={12} />
+                                })()} {isRTL ? CLUB_CATEGORIES.find(c => c.value === event.category)?.labelAr : event.category}
                             </span>
                             {event.is_featured && (
                                 <span className="text-xs px-3 py-1.5 rounded-lg font-medium bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 backdrop-blur-md">
@@ -187,7 +193,10 @@ export default function EventDetailsPage() {
                             className="inline-flex items-center gap-2 text-text-secondary hover:text-brand-400 transition-colors"
                         >
                             <div className="w-7 h-7 rounded-lg bg-brand-400/15 flex items-center justify-center text-xs">
-                                {categoryIcons[event.category]}
+                                {(() => {
+                                    const CategoryIcon = categoryIcons[event.category] || categoryIcons.academic
+                                    return <CategoryIcon size={14} />
+                                })()}
                             </div>
                             <span className="text-sm font-medium">
                                 {t('events.details.hostedBy')} {isRTL ? event.club?.name_ar : event.club?.name}

@@ -65,7 +65,12 @@ export default function ClubApprovalPage() {
                                 return (
                                     <motion.div key={club.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -80 }} className="bg-surface-card border border-surface-border rounded-2xl p-5 hover:border-brand-400/20 transition-all">
                                         <div className="flex items-start gap-4">
-                                            <div className={`shrink-0 w-12 h-12 rounded-xl ${colors.bg} flex items-center justify-center text-xl`}>{categoryIcons[club.category]}</div>
+                                            <div className={`shrink-0 w-12 h-12 rounded-xl ${colors.bg} flex items-center justify-center text-xl`}>
+                                                {(() => {
+                                                    const CategoryIcon = categoryIcons[club.category] || categoryIcons.academic
+                                                    return <CategoryIcon size={20} />
+                                                })()}
+                                            </div>
                                             <div className="flex-1 min-w-0">
                                                 <h3 className="font-semibold text-text-primary">{isRTL ? club.name_ar : club.name}</h3>
                                                 <p className="text-sm text-text-secondary mt-1 line-clamp-2">{isRTL ? club.description_ar : club.description}</p>
@@ -96,7 +101,12 @@ export default function ClubApprovalPage() {
                             const colors = categoryColors[club.category] || categoryColors.academic
                             return (
                                 <motion.div key={club.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-surface-card border border-surface-border rounded-2xl overflow-hidden hover:border-brand-400/20 hover-lift transition-all">
-                                    <div className={`h-16 ${colors.bg} flex items-center justify-center text-2xl`}>{categoryIcons[club.category]}</div>
+                                    <div className={`h-16 ${colors.bg} flex items-center justify-center text-2xl`}>
+                                        {(() => {
+                                            const CategoryIcon = categoryIcons[club.category] || categoryIcons.academic
+                                            return <CategoryIcon size={22} />
+                                        })()}
+                                    </div>
                                     <div className="p-4">
                                         <div className="flex items-center justify-between mb-1"><h3 className="font-semibold text-text-primary text-sm truncate">{isRTL ? club.name_ar : club.name}</h3><button onClick={() => handleDelete(club.id)} className="p-1.5 rounded-lg hover:bg-status-error/10 text-text-muted hover:text-status-error transition-colors shrink-0 cursor-pointer"><Trash2 size={14} /></button></div>
                                         <div className="flex items-center gap-3 text-xs text-text-muted mt-2"><span className={`px-2 py-0.5 rounded-md ${colors.bg} ${colors.text} font-medium`}>{club.category}</span><span className="flex items-center gap-1"><Users size={12} />{club.member_count || 0}</span></div>

@@ -412,10 +412,15 @@ export default function LandingPage() {
                                                 <div className="absolute inset-0 p-7 md:p-10 flex flex-col justify-between">
                                                     <div className="flex items-start justify-between gap-4">
                                                         <div className="flex flex-wrap gap-2">
+                                                            {(() => {
+                                                                const CategoryIcon = categoryIcons[primaryEvent.category] || categoryIcons.academic
+                                                                return (
                                                             <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/10 text-white text-xs font-medium backdrop-blur-sm">
-                                                                <span>{categoryIcons[primaryEvent.category]}</span>
+                                                                <CategoryIcon size={16} />
                                                                 <span>{getCategoryLabel(primaryEvent.category)}</span>
                                                             </span>
+                                                                )
+                                                            })()}
                                                             {primaryEvent.is_featured && (
                                                                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-500/15 border border-yellow-500/30 text-yellow-300 text-xs font-medium backdrop-blur-sm">
                                                                     <Star size={12} className="fill-current" />
