@@ -5,12 +5,12 @@ import toast from 'react-hot-toast'
 import { useAuth } from '../../contexts/AuthContext'
 import { motion } from 'framer-motion'
 import { CLUB_CATEGORIES, categoryIcons } from '../../lib/constants'
-import { getClubByAdminId, updateClub, uploadClubCoverImage } from '../../lib/api/clubs'
+import { getClubByAdminId, resubmitClubApplication, updateClub, uploadClubCoverImage } from '../../lib/api/clubs'
 import { getEventsByClub } from '../../lib/api/events'
 import { getClubMembers } from '../../lib/api/memberships'
 import { getClubAnnouncements } from '../../lib/api/announcements'
 import { PageLoader } from '../../components/common/LoadingSpinner'
-import { Users, Calendar, TrendingUp, BarChart3, ArrowRight, Plus, QrCode, Clock, UserPlus, AlertCircle, XCircle, Pencil, ImagePlus, X, Save, ChevronDown } from 'lucide-react'
+import { Users, Calendar, TrendingUp, BarChart3, ArrowRight, Plus, QrCode, Clock, UserPlus, AlertCircle, XCircle, Pencil, ImagePlus, X, Save, ChevronDown, RefreshCw } from 'lucide-react'
 
 const ALLOWED_COVER_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_COVER_SIZE = 5 * 1024 * 1024
@@ -39,6 +39,7 @@ export default function DashboardPage() {
     const [uploadingCover, setUploadingCover] = useState(false)
     const [coverFile, setCoverFile] = useState(null)
     const [coverPreview, setCoverPreview] = useState('')
+    const isResubmission = club?.status === 'rejected'
 
     useEffect(() => {
         if (!user) return
@@ -116,28 +117,186 @@ export default function DashboardPage() {
                 coverUrl = await uploadClubCoverImage(coverFile)
             }
 
-            const updatedClub = await updateClub(club.id, {
+            const updates = {
                 name: editForm.name,
                 name_ar: editForm.name_ar,
                 description: editForm.description,
                 description_ar: editForm.description_ar,
                 category: editForm.category,
                 cover_url: coverUrl,
-            })
+            }
+            const updatedClub = isResubmission
+                ? await resubmitClubApplication(club.id, updates)
+                : await updateClub(club.id, updates)
 
             setClub(updatedClub)
             setShowEditModal(false)
             setCoverFile(null)
             setCoverPreview('')
-            toast.success('Club updated successfully.')
+            toast.success(isResubmission ? t('clubAdmin.apply.resubmitSuccess') : 'Club updated successfully.')
         } catch (err) {
             console.error('Club update error:', err)
-            toast.error(err.message || 'Failed to update club.')
+            toast.error(err.message || (isResubmission ? t('clubAdmin.apply.resubmitError') : 'Failed to update club.'))
         } finally {
             setSavingClub(false)
             setUploadingCover(false)
         }
     }
+
+    const renderClubFormModal = () => (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+            <motion.form
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                onSubmit={handleSaveClub}
+                className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-surface-border bg-surface-card p-5 shadow-2xl md:p-6"
+            >
+                <div className="mb-5 flex items-start justify-between gap-4">
+                    <div>
+                        <h2 className="text-xl font-bold text-text-primary">
+                            {isResubmission ? t('clubAdmin.apply.resubmitModalTitle') : 'Edit Club'}
+                        </h2>
+                        <p className="mt-1 text-sm text-text-secondary">
+                            {isResubmission ? t('clubAdmin.apply.resubmitModalDesc') : 'Update public club information and cover photo.'}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={closeEditModal}
+                        disabled={savingClub || uploadingCover}
+                        className="rounded-xl p-2 text-text-secondary transition-colors hover:bg-white/5 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
+
+                <div className="space-y-5">
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <div>
+                            <label className="mb-2 block text-sm font-medium text-text-secondary">{t('clubAdmin.apply.name')}</label>
+                            <input
+                                type="text"
+                                required
+                                value={editForm.name}
+                                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                                className="w-full rounded-xl border border-surface-border bg-surface-darker px-4 py-3 text-left text-sm text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-brand-400/50 focus:ring-1 focus:ring-brand-400/50"
+                                dir="ltr"
+                            />
+                        </div>
+                        <div>
+                            <label className="mb-2 block text-sm font-medium text-text-secondary">{t('clubAdmin.apply.nameAr')}</label>
+                            <input
+                                type="text"
+                                required
+                                value={editForm.name_ar}
+                                onChange={(e) => setEditForm({ ...editForm, name_ar: e.target.value })}
+                                className="w-full rounded-xl border border-surface-border bg-surface-darker px-4 py-3 text-right text-sm text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-brand-400/50 focus:ring-1 focus:ring-brand-400/50"
+                                dir="rtl"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="mb-2 block text-sm font-medium text-text-secondary">{t('clubAdmin.apply.category')}</label>
+                        <div className="relative">
+                            <select
+                                required
+                                value={editForm.category}
+                                onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                                className="w-full appearance-none rounded-xl border border-surface-border bg-surface-darker px-4 py-3 pe-10 text-sm text-text-primary outline-none transition-all focus:border-brand-400/50 focus:ring-1 focus:ring-brand-400/50"
+                            >
+                                {CLUB_CATEGORIES.map(cat => (
+                                    <option key={cat.value} value={cat.value}>
+                                        {isRTL ? cat.labelAr : cat.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <ChevronDown size={16} className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-text-muted" />
+                        </div>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <div>
+                            <label className="mb-2 block text-sm font-medium text-text-secondary">{t('clubAdmin.apply.description')}</label>
+                            <textarea
+                                required
+                                rows="5"
+                                value={editForm.description}
+                                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                                className="w-full resize-none rounded-xl border border-surface-border bg-surface-darker px-4 py-3 text-left text-sm text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-brand-400/50 focus:ring-1 focus:ring-brand-400/50"
+                                dir="ltr"
+                            />
+                        </div>
+                        <div>
+                            <label className="mb-2 block text-sm font-medium text-text-secondary">{t('clubAdmin.apply.descriptionAr')}</label>
+                            <textarea
+                                required
+                                rows="5"
+                                value={editForm.description_ar}
+                                onChange={(e) => setEditForm({ ...editForm, description_ar: e.target.value })}
+                                className="w-full resize-none rounded-xl border border-surface-border bg-surface-darker px-4 py-3 text-right text-sm text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-brand-400/50 focus:ring-1 focus:ring-brand-400/50"
+                                dir="rtl"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="mb-2 block text-sm font-medium text-text-secondary">Cover Photo</label>
+                        <label className="relative flex min-h-48 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-surface-border bg-surface-darker text-text-secondary transition-colors hover:border-brand-400/40 hover:text-text-primary">
+                            {coverPreview ? (
+                                <img src={coverPreview} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                            ) : (
+                                <div className="flex flex-col items-center gap-2 text-sm">
+                                    <ImagePlus size={24} />
+                                    <span>Upload JPG, PNG, or WebP up to 5MB</span>
+                                </div>
+                            )}
+                            {coverPreview && <div className="absolute inset-0 bg-black/35" />}
+                            {coverPreview && (
+                                <span className="relative z-10 rounded-lg bg-black/55 px-3 py-1.5 text-sm font-medium text-white">
+                                    Change cover photo
+                                </span>
+                            )}
+                            <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                onChange={handleCoverChange}
+                                className="sr-only"
+                            />
+                        </label>
+                    </div>
+                </div>
+
+                <div className="mt-6 flex justify-end gap-3 border-t border-surface-border pt-5">
+                    <button
+                        type="button"
+                        onClick={closeEditModal}
+                        disabled={savingClub || uploadingCover}
+                        className="rounded-xl border border-surface-border px-5 py-2.5 text-sm font-medium text-text-secondary transition-colors hover:bg-white/5 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        {t('common.cancel')}
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={savingClub || uploadingCover}
+                        className="inline-flex items-center gap-2 rounded-xl gradient-bg px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        {savingClub || uploadingCover ? (
+                            <>
+                                <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                                {uploadingCover ? 'Uploading cover...' : isResubmission ? t('clubAdmin.apply.resubmitting') : 'Saving...'}
+                            </>
+                        ) : (
+                            <>
+                                {isResubmission ? <RefreshCw size={16} /> : <Save size={16} />}
+                                {isResubmission ? t('clubAdmin.apply.resubmitBtn') : 'Save Changes'}
+                            </>
+                        )}
+                    </button>
+                </div>
+            </motion.form>
+        </div>
+    )
 
     if (loading) return <PageLoader />
     if (!club) return (
@@ -168,10 +327,19 @@ export default function DashboardPage() {
                 <XCircle size={32} />
             </div>
             <span className="inline-flex items-center px-3 py-1 rounded-full bg-status-error/15 text-status-error text-xs font-medium mb-4">
-                Rejected
+                {t('clubAdmin.apply.rejectedBadge')}
             </span>
-            <h2 className="text-xl font-bold text-text-primary mb-2">Application Rejected</h2>
-            <p className="text-text-secondary max-w-md mx-auto">Your club application was rejected by a system administrator. This club is not active and cannot be managed.</p>
+            <h2 className="text-xl font-bold text-text-primary mb-2">{t('clubAdmin.apply.rejectedTitle')}</h2>
+            <p className="text-text-secondary max-w-md mx-auto">{t('clubAdmin.apply.rejectedDesc')}</p>
+            <button
+                type="button"
+                onClick={openEditModal}
+                className="mt-6 inline-flex items-center gap-2 px-6 py-3 rounded-xl gradient-bg text-white font-medium hover:shadow-lg hover:shadow-brand-400/20 transition-all"
+            >
+                <RefreshCw size={18} />
+                {t('clubAdmin.apply.resubmitBtn')}
+            </button>
+            {showEditModal && renderClubFormModal()}
         </div>
     )
 
@@ -349,156 +517,7 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-            {showEditModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-                    <motion.form
-                        initial={{ opacity: 0, scale: 0.96 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        onSubmit={handleSaveClub}
-                        className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-surface-border bg-surface-card p-5 shadow-2xl md:p-6"
-                    >
-                        <div className="mb-5 flex items-start justify-between gap-4">
-                            <div>
-                                <h2 className="text-xl font-bold text-text-primary">Edit Club</h2>
-                                <p className="mt-1 text-sm text-text-secondary">Update public club information and cover photo.</p>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={closeEditModal}
-                                disabled={savingClub || uploadingCover}
-                                className="rounded-xl p-2 text-text-secondary transition-colors hover:bg-white/5 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <div className="space-y-5">
-                            <div className="grid gap-4 md:grid-cols-2">
-                                <div>
-                                    <label className="mb-2 block text-sm font-medium text-text-secondary">Club Name (English)</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={editForm.name}
-                                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                                        className="w-full rounded-xl border border-surface-border bg-surface-darker px-4 py-3 text-left text-sm text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-brand-400/50 focus:ring-1 focus:ring-brand-400/50"
-                                        dir="ltr"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="mb-2 block text-sm font-medium text-text-secondary">Club Name (Arabic)</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={editForm.name_ar}
-                                        onChange={(e) => setEditForm({ ...editForm, name_ar: e.target.value })}
-                                        className="w-full rounded-xl border border-surface-border bg-surface-darker px-4 py-3 text-right text-sm text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-brand-400/50 focus:ring-1 focus:ring-brand-400/50"
-                                        dir="rtl"
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="mb-2 block text-sm font-medium text-text-secondary">Category</label>
-                                <div className="relative">
-                                    <select
-                                        required
-                                        value={editForm.category}
-                                        onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
-                                        className="w-full appearance-none rounded-xl border border-surface-border bg-surface-darker px-4 py-3 pe-10 text-sm text-text-primary outline-none transition-all focus:border-brand-400/50 focus:ring-1 focus:ring-brand-400/50"
-                                    >
-                                        {CLUB_CATEGORIES.map(cat => (
-                                            <option key={cat.value} value={cat.value}>
-                                                {isRTL ? cat.labelAr : cat.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <ChevronDown size={16} className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-text-muted" />
-                                </div>
-                            </div>
-
-                            <div className="grid gap-4 md:grid-cols-2">
-                                <div>
-                                    <label className="mb-2 block text-sm font-medium text-text-secondary">Description (English)</label>
-                                    <textarea
-                                        required
-                                        rows="5"
-                                        value={editForm.description}
-                                        onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                                        className="w-full resize-none rounded-xl border border-surface-border bg-surface-darker px-4 py-3 text-left text-sm text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-brand-400/50 focus:ring-1 focus:ring-brand-400/50"
-                                        dir="ltr"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="mb-2 block text-sm font-medium text-text-secondary">Description (Arabic)</label>
-                                    <textarea
-                                        required
-                                        rows="5"
-                                        value={editForm.description_ar}
-                                        onChange={(e) => setEditForm({ ...editForm, description_ar: e.target.value })}
-                                        className="w-full resize-none rounded-xl border border-surface-border bg-surface-darker px-4 py-3 text-right text-sm text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-brand-400/50 focus:ring-1 focus:ring-brand-400/50"
-                                        dir="rtl"
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="mb-2 block text-sm font-medium text-text-secondary">Cover Photo</label>
-                                <label className="relative flex min-h-48 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-surface-border bg-surface-darker text-text-secondary transition-colors hover:border-brand-400/40 hover:text-text-primary">
-                                    {coverPreview ? (
-                                        <img src={coverPreview} alt="" className="absolute inset-0 h-full w-full object-cover" />
-                                    ) : (
-                                        <div className="flex flex-col items-center gap-2 text-sm">
-                                            <ImagePlus size={24} />
-                                            <span>Upload JPG, PNG, or WebP up to 5MB</span>
-                                        </div>
-                                    )}
-                                    {coverPreview && <div className="absolute inset-0 bg-black/35" />}
-                                    {coverPreview && (
-                                        <span className="relative z-10 rounded-lg bg-black/55 px-3 py-1.5 text-sm font-medium text-white">
-                                            Change cover photo
-                                        </span>
-                                    )}
-                                    <input
-                                        type="file"
-                                        accept="image/jpeg,image/png,image/webp"
-                                        onChange={handleCoverChange}
-                                        className="sr-only"
-                                    />
-                                </label>
-                            </div>
-                        </div>
-
-                        <div className="mt-6 flex justify-end gap-3 border-t border-surface-border pt-5">
-                            <button
-                                type="button"
-                                onClick={closeEditModal}
-                                disabled={savingClub || uploadingCover}
-                                className="rounded-xl border border-surface-border px-5 py-2.5 text-sm font-medium text-text-secondary transition-colors hover:bg-white/5 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={savingClub || uploadingCover}
-                                className="inline-flex items-center gap-2 rounded-xl gradient-bg px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                {savingClub || uploadingCover ? (
-                                    <>
-                                        <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                                        {uploadingCover ? 'Uploading cover...' : 'Saving...'}
-                                    </>
-                                ) : (
-                                    <>
-                                        <Save size={16} />
-                                        Save Changes
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                    </motion.form>
-                </div>
-            )}
+            {showEditModal && renderClubFormModal()}
         </div>
     )
 }

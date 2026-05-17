@@ -194,7 +194,16 @@
             "pendingDesc": "Your club application is currently under review by the system administrators. You will be notified once it is approved.",
             "noClubTitle": "No Club Assigned",
             "noClubDesc": "You don't have an assigned club yet. You can apply to start a new club.",
-            "startClubBtn": "Apply for a Club"
+            "startClubBtn": "Apply for a Club",
+            "rejectedBadge": "Rejected",
+            "rejectedTitle": "Application Rejected",
+            "rejectedDesc": "Your club application was rejected by a system administrator. Update the details and resubmit it for another review.",
+            "resubmitBtn": "Edit and Resubmit",
+            "resubmitModalTitle": "Resubmit Club Application",
+            "resubmitModalDesc": "Update your rejected application details before sending it back for review.",
+            "resubmitting": "Resubmitting...",
+            "resubmitSuccess": "Application resubmitted successfully! Waiting for approval.",
+            "resubmitError": "Failed to resubmit application."
         },
         "dashboard": {
             "title": "Club Dashboard",

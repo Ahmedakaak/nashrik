@@ -80,3 +80,20 @@ Contains database-related infrastructure code.
 ### 3. Theme Flow
 1. `ThemeContext` applies either `.light-mode` or `.dark-mode` class to the body.
 2. `index.css` defines color variables for both modes, ensuring a seamless visual transition.
+
+### 4. Club Application Approval Flow
+1. A club admin submits a new club application from `/club-admin/apply`.
+2. The application is stored in the `clubs` table with `status = 'pending'`.
+3. While the application is pending, the club admin dashboard shows an **Application Pending** state and blocks club-management tools such as event creation, member management, announcements, analytics, and QR scanning.
+4. A system admin reviews pending applications from `/admin/clubs`.
+5. If the system admin approves the application:
+    - The club status changes to `approved`.
+    - The club admin dashboard becomes active.
+    - The club admin can manage events, members, announcements, analytics, and attendance scanning.
+6. If the system admin denies the application:
+    - The club status changes to `rejected`.
+    - The club admin dashboard shows a clear **Application Rejected** state.
+    - The rejected club is not shown as an active club to students.
+    - Club-management tools remain blocked because the club is not active.
+    - The UI explains that the application was rejected and provides an **Edit and Resubmit** action.
+    - Resubmission updates the existing club record, changes `status` back to `pending`, and sends it through the same admin review flow again.

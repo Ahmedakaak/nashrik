@@ -101,6 +101,13 @@ export async function updateClub(id, updates) {
     return data
 }
 
+export async function resubmitClubApplication(id, updates) {
+    return updateClub(id, {
+        ...updates,
+        status: 'pending',
+    })
+}
+
 export async function deleteClub(id) {
     const { error } = await supabase
         .from('clubs')
