@@ -42,7 +42,7 @@ export default function AnnouncementsPage() {
         setSaving(true)
         try {
             if (editingAnn) {
-                const updated = await updateAnnouncement(editingAnn.id, form)
+                const updated = await updateAnnouncement(editingAnn.id, form, club.id)
                 setAnnouncements(prev => prev.map(a => a.id === editingAnn.id ? updated : a))
                 toast.success('Announcement updated!')
             } else {
@@ -56,7 +56,7 @@ export default function AnnouncementsPage() {
     }
 
     const handleDelete = async (id) => {
-        try { await deleteAnnouncement(id); setAnnouncements(prev => prev.filter(a => a.id !== id)); toast.success('Deleted.') }
+        try { await deleteAnnouncement(id, club.id); setAnnouncements(prev => prev.filter(a => a.id !== id)); toast.success('Deleted.') }
         catch (err) { toast.error(err.message) }
     }
 

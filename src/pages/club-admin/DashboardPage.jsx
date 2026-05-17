@@ -1,15 +1,28 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import toast from 'react-hot-toast'
 import { useAuth } from '../../contexts/AuthContext'
 import { motion } from 'framer-motion'
-import { categoryIcons } from '../../lib/constants'
-import { getClubByAdminId } from '../../lib/api/clubs'
+import { CLUB_CATEGORIES, categoryIcons } from '../../lib/constants'
+import { getClubByAdminId, updateClub, uploadClubCoverImage } from '../../lib/api/clubs'
 import { getEventsByClub } from '../../lib/api/events'
 import { getClubMembers } from '../../lib/api/memberships'
 import { getClubAnnouncements } from '../../lib/api/announcements'
 import { PageLoader } from '../../components/common/LoadingSpinner'
-import { Users, Calendar, TrendingUp, BarChart3, ArrowRight, Plus, QrCode, Megaphone, Clock, UserPlus, AlertCircle, XCircle } from 'lucide-react'
+import { Users, Calendar, TrendingUp, BarChart3, ArrowRight, Plus, QrCode, Clock, UserPlus, AlertCircle, XCircle, Pencil, ImagePlus, X, Save, ChevronDown } from 'lucide-react'
+
+const ALLOWED_COVER_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const MAX_COVER_SIZE = 5 * 1024 * 1024
+
+const getClubForm = (club) => ({
+    name: club?.name || '',
+    name_ar: club?.name_ar || '',
+    description: club?.description || '',
+    description_ar: club?.description_ar || '',
+    category: club?.category || 'academic',
+    cover_url: club?.cover_url || '',
+})
 
 export default function DashboardPage() {
     const { t, i18n } = useTranslation()
@@ -20,6 +33,12 @@ export default function DashboardPage() {
     const [members, setMembers] = useState([])
     const [announcements, setAnnouncements] = useState([])
     const [loading, setLoading] = useState(true)
+    const [showEditModal, setShowEditModal] = useState(false)
+    const [editForm, setEditForm] = useState(getClubForm(null))
+    const [savingClub, setSavingClub] = useState(false)
+    const [uploadingCover, setUploadingCover] = useState(false)
+    const [coverFile, setCoverFile] = useState(null)
+    const [coverPreview, setCoverPreview] = useState('')
 
     useEffect(() => {
         if (!user) return
@@ -37,6 +56,88 @@ export default function DashboardPage() {
         }
         load()
     }, [user])
+
+    useEffect(() => {
+        return () => {
+            if (coverPreview?.startsWith('blob:')) URL.revokeObjectURL(coverPreview)
+        }
+    }, [coverPreview])
+
+    const openEditModal = () => {
+        const nextForm = getClubForm(club)
+        setEditForm(nextForm)
+        setCoverFile(null)
+        setCoverPreview(nextForm.cover_url)
+        setShowEditModal(true)
+    }
+
+    const closeEditModal = () => {
+        if (savingClub || uploadingCover) return
+        setShowEditModal(false)
+        setCoverFile(null)
+        setCoverPreview('')
+    }
+
+    const handleCoverChange = (event) => {
+        const file = event.target.files?.[0]
+        if (!file) return
+
+        if (!ALLOWED_COVER_TYPES.includes(file.type)) {
+            toast.error('Cover image must be a JPG, PNG, or WebP file.')
+            event.target.value = ''
+            return
+        }
+
+        if (file.size > MAX_COVER_SIZE) {
+            toast.error('Cover image must be 5MB or smaller.')
+            event.target.value = ''
+            return
+        }
+
+        if (coverPreview?.startsWith('blob:')) URL.revokeObjectURL(coverPreview)
+        setCoverFile(file)
+        setCoverPreview(URL.createObjectURL(file))
+    }
+
+    const handleSaveClub = async (event) => {
+        event.preventDefault()
+
+        if (!editForm.name || !editForm.name_ar || !editForm.description || !editForm.description_ar || !editForm.category) {
+            toast.error('Please fill in all editable fields.')
+            return
+        }
+
+        setSavingClub(true)
+        setUploadingCover(!!coverFile)
+
+        try {
+            let coverUrl = editForm.cover_url
+            if (coverFile) {
+                coverUrl = await uploadClubCoverImage(coverFile)
+            }
+
+            const updatedClub = await updateClub(club.id, {
+                name: editForm.name,
+                name_ar: editForm.name_ar,
+                description: editForm.description,
+                description_ar: editForm.description_ar,
+                category: editForm.category,
+                cover_url: coverUrl,
+            })
+
+            setClub(updatedClub)
+            setShowEditModal(false)
+            setCoverFile(null)
+            setCoverPreview('')
+            toast.success('Club updated successfully.')
+        } catch (err) {
+            console.error('Club update error:', err)
+            toast.error(err.message || 'Failed to update club.')
+        } finally {
+            setSavingClub(false)
+            setUploadingCover(false)
+        }
+    }
 
     if (loading) return <PageLoader />
     if (!club) return (
@@ -94,6 +195,8 @@ export default function DashboardPage() {
     const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08 } } }
     const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } }
     const formatDate = (d) => new Date(d).toLocaleDateString(isRTL ? 'ar-OM' : 'en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+    const ClubCategoryIcon = categoryIcons[club.category] || categoryIcons.academic
+    const clubCategory = CLUB_CATEGORIES.find(c => c.value === club.category)
 
     return (
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-8">
@@ -101,6 +204,17 @@ export default function DashboardPage() {
                 <h1 className="text-2xl md:text-3xl font-bold text-text-primary">{t('clubAdmin.dashboard.title')}</h1>
                 <p className="text-text-secondary mt-1">{isRTL ? club?.name_ar : club?.name} — {t('clubAdmin.dashboard.title')}</p>
             </motion.div>
+
+            <div className="flex justify-end">
+                <button
+                    type="button"
+                    onClick={openEditModal}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-surface-border bg-surface-card px-4 py-2.5 text-sm font-medium text-text-primary transition-colors hover:border-brand-400/40 hover:bg-white/5"
+                >
+                    <Pencil size={16} />
+                    Edit Club
+                </button>
+            </div>
 
             <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {stats.map((stat, i) => (
@@ -172,6 +286,35 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="space-y-6">
+                    <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="overflow-hidden rounded-2xl border border-surface-border bg-surface-card">
+                        <div className="relative h-36 bg-surface-darker">
+                            {club.cover_url ? (
+                                <img src={club.cover_url} alt="" className="h-full w-full object-cover" />
+                            ) : (
+                                <div className="flex h-full items-center justify-center text-text-muted">
+                                    <ClubCategoryIcon size={36} />
+                                </div>
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                            <span className="absolute bottom-3 start-3 inline-flex items-center gap-1.5 rounded-lg bg-black/45 px-2.5 py-1 text-xs font-medium text-white">
+                                <ClubCategoryIcon size={14} />
+                                {isRTL ? clubCategory?.labelAr : clubCategory?.label}
+                            </span>
+                        </div>
+                        <div className="p-5">
+                            <h3 className="truncate font-semibold text-text-primary">{isRTL ? club.name_ar : club.name}</h3>
+                            <p className="mt-1 line-clamp-3 text-sm text-text-secondary">{isRTL ? club.description_ar : club.description}</p>
+                            <button
+                                type="button"
+                                onClick={openEditModal}
+                                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-400/10 px-4 py-2.5 text-sm font-medium text-brand-400 transition-colors hover:bg-brand-400/15"
+                            >
+                                <Pencil size={16} />
+                                Edit Club
+                            </button>
+                        </div>
+                    </motion.section>
+
                     <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="bg-surface-card border border-surface-border rounded-2xl p-5">
                         <h3 className="font-semibold text-text-primary mb-4">Quick Actions</h3>
                         <div className="space-y-2">
@@ -205,6 +348,157 @@ export default function DashboardPage() {
                     </motion.section>
                 </div>
             </div>
+
+            {showEditModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+                    <motion.form
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        onSubmit={handleSaveClub}
+                        className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-surface-border bg-surface-card p-5 shadow-2xl md:p-6"
+                    >
+                        <div className="mb-5 flex items-start justify-between gap-4">
+                            <div>
+                                <h2 className="text-xl font-bold text-text-primary">Edit Club</h2>
+                                <p className="mt-1 text-sm text-text-secondary">Update public club information and cover photo.</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={closeEditModal}
+                                disabled={savingClub || uploadingCover}
+                                className="rounded-xl p-2 text-text-secondary transition-colors hover:bg-white/5 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-5">
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div>
+                                    <label className="mb-2 block text-sm font-medium text-text-secondary">Club Name (English)</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={editForm.name}
+                                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                                        className="w-full rounded-xl border border-surface-border bg-surface-darker px-4 py-3 text-left text-sm text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-brand-400/50 focus:ring-1 focus:ring-brand-400/50"
+                                        dir="ltr"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="mb-2 block text-sm font-medium text-text-secondary">Club Name (Arabic)</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={editForm.name_ar}
+                                        onChange={(e) => setEditForm({ ...editForm, name_ar: e.target.value })}
+                                        className="w-full rounded-xl border border-surface-border bg-surface-darker px-4 py-3 text-right text-sm text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-brand-400/50 focus:ring-1 focus:ring-brand-400/50"
+                                        dir="rtl"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="mb-2 block text-sm font-medium text-text-secondary">Category</label>
+                                <div className="relative">
+                                    <select
+                                        required
+                                        value={editForm.category}
+                                        onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                                        className="w-full appearance-none rounded-xl border border-surface-border bg-surface-darker px-4 py-3 pe-10 text-sm text-text-primary outline-none transition-all focus:border-brand-400/50 focus:ring-1 focus:ring-brand-400/50"
+                                    >
+                                        {CLUB_CATEGORIES.map(cat => (
+                                            <option key={cat.value} value={cat.value}>
+                                                {isRTL ? cat.labelAr : cat.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown size={16} className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-text-muted" />
+                                </div>
+                            </div>
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div>
+                                    <label className="mb-2 block text-sm font-medium text-text-secondary">Description (English)</label>
+                                    <textarea
+                                        required
+                                        rows="5"
+                                        value={editForm.description}
+                                        onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                                        className="w-full resize-none rounded-xl border border-surface-border bg-surface-darker px-4 py-3 text-left text-sm text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-brand-400/50 focus:ring-1 focus:ring-brand-400/50"
+                                        dir="ltr"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="mb-2 block text-sm font-medium text-text-secondary">Description (Arabic)</label>
+                                    <textarea
+                                        required
+                                        rows="5"
+                                        value={editForm.description_ar}
+                                        onChange={(e) => setEditForm({ ...editForm, description_ar: e.target.value })}
+                                        className="w-full resize-none rounded-xl border border-surface-border bg-surface-darker px-4 py-3 text-right text-sm text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-brand-400/50 focus:ring-1 focus:ring-brand-400/50"
+                                        dir="rtl"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="mb-2 block text-sm font-medium text-text-secondary">Cover Photo</label>
+                                <label className="relative flex min-h-48 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-surface-border bg-surface-darker text-text-secondary transition-colors hover:border-brand-400/40 hover:text-text-primary">
+                                    {coverPreview ? (
+                                        <img src={coverPreview} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                                    ) : (
+                                        <div className="flex flex-col items-center gap-2 text-sm">
+                                            <ImagePlus size={24} />
+                                            <span>Upload JPG, PNG, or WebP up to 5MB</span>
+                                        </div>
+                                    )}
+                                    {coverPreview && <div className="absolute inset-0 bg-black/35" />}
+                                    {coverPreview && (
+                                        <span className="relative z-10 rounded-lg bg-black/55 px-3 py-1.5 text-sm font-medium text-white">
+                                            Change cover photo
+                                        </span>
+                                    )}
+                                    <input
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/webp"
+                                        onChange={handleCoverChange}
+                                        className="sr-only"
+                                    />
+                                </label>
+                            </div>
+                        </div>
+
+                        <div className="mt-6 flex justify-end gap-3 border-t border-surface-border pt-5">
+                            <button
+                                type="button"
+                                onClick={closeEditModal}
+                                disabled={savingClub || uploadingCover}
+                                className="rounded-xl border border-surface-border px-5 py-2.5 text-sm font-medium text-text-secondary transition-colors hover:bg-white/5 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={savingClub || uploadingCover}
+                                className="inline-flex items-center gap-2 rounded-xl gradient-bg px-5 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                {savingClub || uploadingCover ? (
+                                    <>
+                                        <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                                        {uploadingCover ? 'Uploading cover...' : 'Saving...'}
+                                    </>
+                                ) : (
+                                    <>
+                                        <Save size={16} />
+                                        Save Changes
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </motion.form>
+                </div>
+            )}
         </div>
     )
 }

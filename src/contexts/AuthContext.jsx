@@ -7,6 +7,7 @@ import imageCompression from 'browser-image-compression'
  * Defaults to an empty object.
  */
 const AuthContext = createContext({})
+const appUrl = import.meta.env.VITE_APP_URL || window.location.origin
 
 /**
  * Provider component that wraps the application to supply authentication data.
@@ -144,7 +145,7 @@ export const AuthProvider = ({ children }) => {
      */
     const resetPassword = async (email) => {
         return await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}/reset-password`,
+            redirectTo: `${appUrl}/reset-password`,
         })
     }
 
