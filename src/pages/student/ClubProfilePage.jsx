@@ -77,8 +77,8 @@ export default function ClubProfilePage() {
                 setMembership(null)
                 toast.success('Left the club.')
             } else {
-                await joinClub(id, user.id)
-                setMembership({ status: 'pending' })
+                const updatedMembership = await joinClub(id, user.id)
+                setMembership(updatedMembership)
                 toast.success('Join request sent! 🎉')
             }
         } catch (err) {

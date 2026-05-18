@@ -25,12 +25,9 @@ export async function getMembershipStatus(clubId, userId) {
     return data
 }
 
-export async function joinClub(clubId, userId) {
+export async function joinClub(clubId) {
     const { data, error } = await supabase
-        .from('club_memberships')
-        .insert({ club_id: clubId, user_id: userId, status: 'pending' })
-        .select()
-        .single()
+        .rpc('request_club_membership', { p_club_id: clubId })
 
     if (error) throw error
     return data
